@@ -1,0 +1,2819 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#28425E">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Patika – Keşif</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.47.0/iconfont/tabler-icons.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root{
+    --bg:#FAFAF8;--surface:#FFFFFF;--card:#F2F3F1;
+    --text:#1B2027;--text-secondary:#5C6570;--text-muted:#98A0A8;
+    --border:#E6E7E3;--accent:#28425E;--accent-dark:#1B2F44;--accent-light:#E7ECF1;--on-accent:#FFFFFF;
+    --warn:#C1552F;--warn-light:#FBEAE1;--success:#2F8F5B;--drive:#B9791F;--drive-light:#F6EBD6;
+    --overlay-bg:rgba(255,255,255,0.92);
+    --gold:#C9992B;--gold-light:#F7EDD4;--fog:rgba(20,24,30,0.86);
+  }
+  /* Varsayılan tema her zaman beyaz/açık. Koyu tema yalnızca kullanıcı Ayarlar'dan
+     seçerse (ya da "Sistem"i seçip cihazı koyu moddaysa) devreye girer. */
+  html[data-appearance="dark"]{
+    --bg:#12161C;--surface:#1A2029;--card:#20262E;
+    --text:#F1F3F5;--text-secondary:#B7C0C9;--text-muted:#78828C;
+    --border:#2C333B;--accent:#6E9DCB;--accent-dark:#4C7AA6;--accent-light:#1E3348;--on-accent:#0B1520;
+    --warn:#E6906C;--warn-light:#372218;--success:#6FC79A;--drive:#DCA75E;--drive-light:#332811;
+    --overlay-bg:rgba(26,32,41,0.9);
+    --gold:#E3B95A;--gold-light:#332811;--fog:rgba(8,10,14,0.9);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    overscroll-behavior:none;-webkit-tap-highlight-color:transparent;
+    -webkit-user-select:none;user-select:none;
+  }
+  .app{display:flex;flex-direction:column;height:100dvh;max-width:480px;margin:0 auto;background:var(--surface);position:relative;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top) + 12px) 18px 12px;border-bottom:1px solid var(--border);flex-shrink:0;}
+  .brand{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:600;}
+  .brand i{font-size:20px;color:var(--accent);}
+  .loc{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-muted);}
+  .loc i{font-size:14px;}
+  .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 18px 22px;}
+  .screen{display:none;}
+  .screen.active{display:block;}
+  .card{background:var(--card);border-radius:14px;padding:14px 16px;margin-bottom:12px;}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .ptrack{height:7px;background:var(--border);border-radius:5px;overflow:hidden;margin-top:6px;}
+  .pfill{height:100%;background:var(--accent);border-radius:5px;transition:width .35s;}
+  .muted{color:var(--text-muted);}
+  .sec-label{font-size:13px;font-weight:600;color:var(--text-secondary);margin:18px 0 8px;display:flex;align-items:center;gap:6px;}
+  .sec-label:first-child{margin-top:0;}
+  button{font-family:inherit;}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:1.5px solid var(--border);border-radius:999px;font-size:13px;color:var(--text-secondary);background:var(--surface);margin:0 8px 8px 0;}
+  .chip.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent);}
+  .tabrow{display:flex;gap:4px;background:var(--card);border-radius:12px;padding:4px;}
+  .mmode-btn,.subtab-btn{flex:1;background:transparent;border:none;border-radius:9px;padding:10px 6px;font-size:12.5px;font-weight:600;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:5px;}
+  .mmode-btn.active,.subtab-btn.active{background:var(--surface);color:var(--accent);box-shadow:0 1px 5px rgba(0,0,0,0.12);}
+  .subtab{display:none;}
+  .subtab.active{display:block;}
+  .navbar{display:flex;border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom);flex-shrink:0;background:var(--surface);}
+  .navbtn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px 8px;background:transparent;border:none;border-top:2.5px solid transparent;font-size:11px;color:var(--text-muted);}
+  .navbtn i{font-size:22px;}
+  .navbtn.active{color:var(--accent);border-top-color:var(--accent);}
+  .avatar{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-dark));display:flex;align-items:center;justify-content:center;color:var(--on-accent);font-weight:700;font-size:19px;letter-spacing:.2px;border:2.5px solid var(--surface);box-shadow:0 4px 12px rgba(0,0,0,0.2),inset 0 1px 1px rgba(255,255,255,0.35);position:relative;flex-shrink:0;}
+  .avatar.guest{background:linear-gradient(135deg,var(--text-muted),var(--text-secondary));}
+  .avatar i{font-size:21px;}
+  .avatar-badge{position:absolute;bottom:-3px;right:-3px;width:19px;height:19px;border-radius:50%;background:var(--success);border:2.5px solid var(--surface);display:flex;align-items:center;justify-content:center;}
+  .avatar-badge i{font-size:10px;color:#fff;}
+  .statline{text-align:center;font-size:13px;color:var(--text-secondary);margin:10px 0 2px;}
+  .statline b{color:var(--text);font-weight:700;}
+
+  .hint-text{display:flex;align-items:flex-start;gap:7px;font-size:12px;color:var(--text-secondary);background:var(--accent-light);padding:9px 11px;border-radius:11px;margin-bottom:10px;line-height:1.45;}
+  .hint-text i{font-size:14px;color:var(--accent);flex-shrink:0;margin-top:1px;}
+
+  .map-stage{position:relative;width:100%;margin-bottom:12px;}
+  .mapwrap{position:relative;z-index:0;width:100%;height:360px;border-radius:16px;overflow:hidden;background:var(--card);isolation:isolate;}
+  #map{position:absolute;inset:0;-webkit-user-select:auto;user-select:auto;}
+  .map-icon-btn{position:absolute;width:38px;height:38px;border-radius:50%;background:var(--overlay-bg);border:none;display:flex;align-items:center;justify-content:center;color:var(--text);z-index:10;font-size:17px;}
+  .map-icon-btn.locate{top:10px;right:10px;}
+  .fab{position:absolute;right:10px;bottom:10px;width:50px;height:50px;border-radius:50%;background:var(--accent);color:var(--on-accent);border:none;font-size:22px;display:flex;align-items:center;justify-content:center;z-index:11;box-shadow:0 2px 10px rgba(0,0,0,0.28);transition:transform .2s;}
+  .fab.open{transform:rotate(45deg);}
+  .fab-menu{position:absolute;right:10px;bottom:66px;display:none;flex-direction:column;gap:8px;z-index:11;align-items:flex-end;}
+  .fab-menu.show{display:flex;}
+  .fab-menu button{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 14px;font-size:13px;display:flex;align-items:center;gap:8px;white-space:nowrap;color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,0.15);}
+  .fab-menu button i{color:var(--accent);font-size:16px;}
+
+  .mode-toggle{display:flex;gap:8px;margin-bottom:14px;}
+  .mode-opt{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:10px 6px 9px;font-size:12.5px;font-weight:600;color:var(--text-secondary);}
+  .mode-opt-icon{width:32px;height:32px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text-muted);transition:background .15s,color .15s;}
+  .mode-opt[data-mode="walk"].active{border-color:var(--accent);background:var(--accent-light);color:var(--accent);}
+  .mode-opt[data-mode="walk"].active .mode-opt-icon{background:var(--accent);color:var(--on-accent);}
+  .mode-opt[data-mode="drive"].active{border-color:var(--drive);background:var(--drive-light);color:var(--drive);}
+  .mode-opt[data-mode="drive"].active .mode-opt-icon{background:var(--drive);color:#fff;}
+
+
+  .gpsmsg{font-size:12px;color:var(--warn);min-height:16px;margin:8px 0 0;line-height:1.5;}
+  .loc-line{font-size:13px;color:var(--text-secondary);min-height:18px;margin:2px 0;}
+
+  .btn-primary-big{width:100%;background:var(--accent);color:var(--on-accent);border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:600;margin:10px 0 4px;}
+  .btn-primary-big.recording{background:var(--warn);}
+  .btn-primary-big:active{transform:scale(0.98);}
+  .btn-outline{flex:1;background:var(--surface);color:var(--text);border:1.5px solid var(--border);border-radius:10px;padding:11px 8px;font-size:13px;font-weight:600;}
+  .btn-outline:active{transform:scale(0.97);}
+  .btn-track{flex:1.2;background:var(--accent);color:var(--on-accent);border:none;border-radius:10px;padding:11px 8px;font-size:13px;font-weight:600;}
+  .btn-track:active{transform:scale(0.97);}
+
+  .info-toggle{display:flex;align-items:center;gap:5px;background:none;border:none;color:var(--text-muted);font-size:12px;margin:6px auto 4px;padding:4px;}
+  .info-panel{display:none;}
+  .info-panel.show{display:block;}
+
+  .poi-pin{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;border:2.5px solid var(--surface);}
+  .poi-pin.visited{background:var(--success);}
+  .fog-canvas{position:absolute;top:0;left:0;pointer-events:none;}
+  .chest-pin{width:28px;height:28px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;border:2.5px solid var(--surface);box-shadow:0 0 0 5px rgba(201,153,43,0.22);animation:chestpulse 2.2s ease-in-out infinite;}
+  .chest-pin.opened{opacity:0.4;animation:none;box-shadow:none;}
+  @keyframes chestpulse{0%,100%{box-shadow:0 0 0 5px rgba(201,153,43,0.22);}50%{box-shadow:0 0 0 9px rgba(201,153,43,0.08);}}
+  .leaflet-container{font-family:inherit;background:var(--card);}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:flex-end;justify-content:center;z-index:50;}
+  .modal-overlay.show{display:flex;}
+  .modal-card{background:var(--surface);border-radius:20px 20px 0 0;padding:22px 20px calc(20px + env(safe-area-inset-bottom));max-width:480px;width:100%;text-align:center;}
+
+  .ctxwarn{display:none;align-items:flex-start;gap:8px;background:var(--warn-light);color:var(--warn);padding:9px 16px;font-size:12px;line-height:1.5;flex-shrink:0;}
+  .ctxwarn.show{display:flex;}
+  .ctxwarn i{font-size:16px;flex-shrink:0;margin-top:1px;}
+
+  .tip-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:60;padding:24px;}
+  .tip-overlay.show{display:flex;}
+  .tip-card{background:var(--surface);border-radius:16px;padding:22px 20px;max-width:300px;text-align:center;}
+
+  .memo-card{display:flex;gap:10px;background:var(--card);border-radius:12px;padding:10px;margin-bottom:8px;align-items:center;}
+  .memo-card img{width:52px;height:52px;border-radius:8px;object-fit:cover;flex-shrink:0;}
+  .memo-del{background:none;border:none;color:var(--text-muted);font-size:11px;padding:4px;}
+  input[type=text], textarea{width:100%;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:9px 11px;font-size:13px;color:var(--text);font-family:inherit;margin-bottom:10px;}
+  .mood-btn{flex:1;font-size:20px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:6px 0;}
+  .mood-btn.active{border-color:var(--accent);background:var(--accent-light);}
+
+  .auth-tabs{display:flex;gap:4px;background:var(--card);border-radius:12px;padding:4px;margin-bottom:14px;}
+  .auth-tab{flex:1;background:transparent;border:none;border-radius:9px;padding:10px 6px;font-size:12.5px;font-weight:600;color:var(--text-secondary);}
+  .auth-tab.active{background:var(--surface);color:var(--accent);box-shadow:0 1px 5px rgba(0,0,0,0.12);}
+  .auth-pane{display:none;}
+  .auth-pane.active{display:block;}
+  .auth-field{position:relative;display:flex;align-items:center;margin-bottom:10px;}
+  .auth-field>i{position:absolute;left:12px;font-size:15px;color:var(--text-muted);pointer-events:none;}
+  .auth-field input{padding-left:36px;padding-right:36px;margin-bottom:0;}
+  .auth-eye{position:absolute;right:4px;background:none;border:none;color:var(--text-muted);font-size:16px;padding:8px;display:flex;align-items:center;justify-content:center;}
+  .btn-primary-auth{width:100%;background:var(--accent);color:var(--on-accent);border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:600;margin-top:2px;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn-primary-auth:active{transform:scale(0.98);}
+  .btn-primary-auth:disabled{opacity:.72;}
+  .btn-primary-auth .ti-loader-2{animation:auth-spin .7s linear infinite;}
+  .ti-loader-2.spin{animation:auth-spin .7s linear infinite;}
+  @keyframes auth-spin{to{transform:rotate(360deg);}}
+  .auth-forgot{display:block;margin:10px auto 0;background:none;border:none;color:var(--accent);font-size:12px;font-weight:600;padding:4px;}
+  .auth-alert{display:none;align-items:flex-start;gap:7px;background:var(--warn-light);color:var(--warn);border-radius:9px;padding:9px 11px;font-size:12px;line-height:1.5;margin-top:10px;}
+  .auth-alert.show{display:flex;}
+  .auth-alert.success{background:var(--accent-light);color:var(--accent);}
+  .auth-alert i{font-size:15px;flex-shrink:0;margin-top:1px;}
+  .account-chip{display:flex;align-items:center;gap:10px;background:var(--accent-light);color:var(--accent);border-radius:11px;padding:11px 12px;}
+  .account-chip i{font-size:23px;flex-shrink:0;}
+
+  /* ---- Üst bar ikonları (Ayarlar + konum ipucu) ---- */
+  .topbar-right{display:flex;align-items:center;gap:10px;}
+  .loc{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-muted);max-width:150px;}
+  .loc span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .loc-hint-btn{background:none;border:none;color:var(--text-muted);font-size:13px;padding:2px;display:flex;flex-shrink:0;}
+  .topbar-icon-btn{width:34px;height:34px;border-radius:50%;background:var(--card);border:none;display:flex;align-items:center;justify-content:center;color:var(--text-secondary);font-size:17px;flex-shrink:0;}
+  .topbar-icon-btn:active{transform:scale(0.94);}
+
+  /* ---- Kompakt ulaşım modu seçici (yuvarlak ikonlar) ---- */
+  .mode-icon-row{display:flex;gap:8px;justify-content:center;margin-bottom:18px;}
+  .mode-icon-btn{width:46px;height:46px;border-radius:50%;background:var(--bg);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--text-muted);position:relative;flex-shrink:0;}
+  .mode-icon-btn:active{transform:scale(0.94);}
+  .mode-icon-btn .mib-label{position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:600;color:var(--text-muted);white-space:nowrap;}
+  .mode-icon-btn.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent);}
+  .mode-icon-btn.active .mib-label{color:var(--accent);}
+  .mode-icon-btn[data-mode="drive"].active{border-color:var(--drive);background:var(--drive-light);color:var(--drive);}
+  .mode-icon-btn[data-mode="drive"].active .mib-label{color:var(--drive);}
+  .mode-auto-line{text-align:center;font-size:11px;color:var(--text-muted);margin:14px 0 4px;min-height:14px;}
+
+  /* ---- FAB menüsü: yuvarlak ikon + yanında etiket balonu ---- */
+  .fab-menu{align-items:flex-end;}
+  .fab-menu .fmi{display:flex;align-items:center;gap:8px;}
+  .fab-menu .fmi-label{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,0.15);white-space:nowrap;}
+  .fab-menu button.fmi-btn{width:44px;height:44px;border-radius:50%;background:var(--surface);border:1px solid var(--border);padding:0;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.15);flex-shrink:0;}
+  .fab-menu button.fmi-btn i{font-size:18px;color:var(--accent);}
+
+  /* ---- Ayarlar kipi ---- */
+  .settings-card{max-height:80vh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  .switch-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 2px;}
+  .switch-row .sr-label{font-size:13.5px;display:flex;align-items:center;gap:7px;}
+  .switch-row .sr-label i{font-size:16px;color:var(--accent);}
+  .switch{position:relative;display:inline-block;width:42px;height:25px;flex-shrink:0;}
+  .switch input{opacity:0;width:0;height:0;}
+  .switch-slider{position:absolute;cursor:pointer;inset:0;background:var(--border);border-radius:999px;transition:.2s;}
+  .switch-slider:before{content:"";position:absolute;width:19px;height:19px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3);}
+  .switch input:checked + .switch-slider{background:var(--accent);}
+  .switch input:checked + .switch-slider:before{transform:translateX(17px);}
+  .appearance-row{display:flex;gap:8px;margin-bottom:4px;}
+  .appearance-opt{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;background:var(--bg);border:1.5px solid var(--border);border-radius:11px;padding:9px 4px;font-size:11.5px;font-weight:600;color:var(--text-secondary);}
+  .appearance-opt i{font-size:17px;}
+  .appearance-opt.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent);}
+  .apikey-note{font-size:11px;color:var(--text-muted);line-height:1.5;margin:2px 0 8px;}
+
+  /* ---- Rozetler / Madalyalar ---- */
+  .medal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 8px;}
+  .medal{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;}
+  .medal-disc{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;position:relative;background:linear-gradient(155deg,var(--gold) 0%,#8a6a1a 100%);color:#fff;box-shadow:0 3px 8px rgba(0,0,0,0.25),inset 0 2px 2px rgba(255,255,255,0.35),inset 0 -3px 4px rgba(0,0,0,0.2);border:3px solid var(--gold-light);}
+  .medal-disc.locked{background:var(--card);color:var(--text-muted);border-color:var(--border);box-shadow:none;opacity:0.55;}
+  .medal-disc .medal-ribbon{position:absolute;top:-9px;left:50%;transform:translateX(-50%);width:16px;height:14px;background:var(--warn);clip-path:polygon(0 0,100% 0,100% 100%,50% 78%,0 100%);}
+  .medal-disc.locked .medal-ribbon{background:var(--border);}
+  .medal-title{font-size:11px;font-weight:600;color:var(--text);line-height:1.3;}
+  .medal-title.locked{color:var(--text-muted);font-weight:500;}
+  .medal-sub{font-size:10px;color:var(--text-muted);}
+
+  /* ---- Seviye / rütbe ---- */
+  .level-pill{display:flex;align-items:center;gap:10px;}
+  .level-disc{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-dark));color:var(--on-accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;}
+  .level-xp-track{height:6px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:5px;width:100%;}
+  .level-xp-fill{height:100%;background:var(--accent);border-radius:4px;transition:width .35s;}
+
+  /* ---- Rota seçenekleri ---- */
+  .route-opt{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:11px 12px;margin-bottom:8px;text-align:left;width:100%;}
+  .route-opt:active{transform:scale(0.99);}
+  .route-opt .ro-title{font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px;margin-bottom:3px;}
+  .route-opt .ro-title i{color:var(--accent);}
+  .route-opt .ro-sub{font-size:11.5px;color:var(--text-secondary);line-height:1.4;}
+  .route-actions{display:flex;gap:8px;margin-top:8px;}
+
+  /* ---- Toast (kaybolan mesaj) ---- */
+  .app-toast{position:absolute;left:50%;bottom:90px;transform:translateX(-50%);background:var(--text);color:var(--surface);padding:10px 16px;border-radius:999px;font-size:13px;font-weight:600;z-index:70;display:flex;align-items:center;gap:6px;box-shadow:0 4px 14px rgba(0,0,0,0.3);white-space:nowrap;max-width:88%;}
+  .app-toast span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand"><i class="ti ti-compass"></i>Patika</div>
+    <div class="topbar-right">
+      <div class="loc"><i class="ti ti-map-pin"></i><span id="topbar-loc-text">Konum bekleniyor</span><button class="loc-hint-btn" id="loc-hint-btn"><i class="ti ti-info-circle"></i></button></div>
+      <button class="topbar-icon-btn" id="settings-btn"><i class="ti ti-settings"></i></button>
+    </div>
+  </div>
+
+  <div class="ctxwarn" id="context-warning">
+    <i class="ti ti-alert-triangle"></i>
+    <span>Bu ortamda GPS çalışmaz (önizleme/https değil). Dosyayı gerçek bir linkte aç, yoksa "izin reddedildi" hatası devam eder.</span>
+  </div>
+
+  <div class="content">
+
+    <div id="screen-harita" class="screen active">
+      <div id="suggestion-text" class="hint-text"><i class="ti ti-bulb"></i><span id="suggestion-text-inner">Haritada gezin, izin ver ve takibi başlat, gerçek yürüyüşün haritada iz bıraksın.</span></div>
+      <button class="btn-outline" id="plan-route-btn" style="width:100%;margin-bottom:10px;"><i class="ti ti-route" style="margin-right:6px;"></i>Bugün için rota öner</button>
+      <div id="route-result" class="card" style="display:none;margin-bottom:12px;">
+        <div class="row" style="margin-bottom:6px;"><span style="font-size:13px;font-weight:600;"><i class="ti ti-route" style="color:var(--accent);margin-right:4px;"></i>Önerilen rota</span></div>
+        <div id="route-result-text" style="font-size:13px;line-height:1.6;color:var(--text-secondary);"></div>
+        <div id="route-options-list"></div>
+        <div class="route-actions">
+          <button class="btn-outline" id="route-cancel-btn">Vazgeç</button>
+          <button class="btn-outline" id="route-reroll-btn"><i class="ti ti-refresh" style="margin-right:4px;"></i>Başka rota öner</button>
+        </div>
+      </div>
+
+      <div class="map-stage">
+        <div class="mapwrap">
+          <div id="map"></div>
+        </div>
+        <button class="map-icon-btn locate" id="locate-btn"><i class="ti ti-locate"></i></button>
+        <div class="fab-menu" id="fab-menu">
+          <div class="fmi" style="display:none;"><span class="fmi-label">Herkese paylaş</span><button class="fmi-btn" id="sharepublic-btn"><i class="ti ti-world"></i></button></div>
+          <div class="fmi"><span class="fmi-label">Rotanı paylaş</span><button class="fmi-btn" id="share-btn"><i class="ti ti-share"></i></button></div>
+          <div class="fmi"><span class="fmi-label">Anı ekle</span><button class="fmi-btn" id="addmemo-btn"><i class="ti ti-camera"></i></button></div>
+          <div class="fmi"><span class="fmi-label">Nokta ekle</span><button class="fmi-btn" id="addpoi-btn"><i class="ti ti-map-pin-plus"></i></button></div>
+        </div>
+        <button class="fab" id="fab-btn"><i class="ti ti-plus"></i></button>
+      </div>
+
+      <div class="card">
+        <div class="mode-icon-row">
+          <button class="mode-icon-btn active" data-mode="auto" title="Otomatik"><i class="ti ti-bolt"></i><span class="mib-label">Oto</span></button>
+          <button class="mode-icon-btn" data-mode="walk" title="Yürüyorum"><i class="ti ti-walk"></i><span class="mib-label">Yürü</span></button>
+          <button class="mode-icon-btn" data-mode="bike" title="Bisikletteyim"><i class="ti ti-bike"></i><span class="mib-label">Bisiklet</span></button>
+          <button class="mode-icon-btn" data-mode="drive" title="Araçtayım"><i class="ti ti-car"></i><span class="mib-label">Araç</span></button>
+        </div>
+        <div class="mode-auto-line" id="mode-auto-line"></div>
+        <div class="statline"><b id="stat-dist">0.00</b> km · <b id="stat-time">0</b> dk · <b id="stat-pts">0</b> nokta · <b id="streak-count">0</b> gün seri</div>
+        <button class="btn-primary-big" id="track-btn">Takibi başlat</button>
+        <div class="gpsmsg" id="gps-msg"></div>
+        <div class="loc-line" id="loc-info"></div>
+        <div class="loc-line" id="street-info"></div>
+      </div>
+
+      <button class="info-toggle" id="info-toggle"><i class="ti ti-info-circle"></i>Detaylar ve keşif yüzdeleri</button>
+      <div class="info-panel" id="info-panel">
+        <div class="card" style="margin-top:8px;">
+          <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:2px;">Keşif yüzdelerin <span class="muted" style="font-weight:400;">(gerçek GPS verinden)</span></div>
+          <div class="muted" id="zone-home-note" style="font-size:11px;margin-bottom:10px;">Konum izni verip bir kez konum almanı bekliyor</div>
+          <div style="margin-bottom:9px;"><div class="row" style="font-size:13px;"><span>Ev çevresi</span><span class="muted" id="zone-ev-pct">%0</span></div><div class="ptrack"><div class="pfill" id="zone-ev-fill" style="width:0%;"></div></div></div>
+          <div style="margin-bottom:9px;"><div class="row" style="font-size:13px;"><span>Mahalle</span><span class="muted" id="zone-mahalle-pct">%0</span></div><div class="ptrack"><div class="pfill" id="zone-mahalle-fill" style="width:0%;"></div></div></div>
+          <div style="margin-bottom:9px;"><div class="row" style="font-size:13px;"><span>İlçe</span><span class="muted" id="zone-ilce-pct">%0</span></div><div class="ptrack"><div class="pfill" id="zone-ilce-fill" style="width:0%;"></div></div></div>
+          <div style="margin-bottom:9px;"><div class="row" style="font-size:13px;"><span>Şehir</span><span class="muted" id="zone-sehir-pct">%0</span></div><div class="ptrack"><div class="pfill" id="zone-sehir-fill" style="width:0%;"></div></div></div>
+          <div><div class="row" style="font-size:13px;"><span class="muted">Ülke</span><span class="muted">yakında</span></div><div class="ptrack"><div class="pfill" style="width:0%;"></div></div></div>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);line-height:1.5;">Yüzdeler ilk konumun etrafında yaklaşık dairesel alanlar için hesaplanır, gerçek mahalle/ilçe sınırı değildir. Yürüyüş <span style="color:var(--accent);">●</span> lacivert, araç <span style="color:var(--drive);">●</span> amber renkte çiziliyor. Çalışması için bu sayfanın https üzerinden, gerçek bir sekmede açılması gerekir.</div>
+      </div>
+    </div>
+
+    <div id="screen-ilerleme" class="screen">
+      <div class="tabrow" style="margin-bottom:14px;">
+        <button class="subtab-btn active" data-subtab="gorevler"><i class="ti ti-target"></i>Görevler</button>
+        <button class="subtab-btn" data-subtab="rozetler"><i class="ti ti-medal"></i>Rozetler</button>
+        <button class="subtab-btn" data-subtab="gecmis"><i class="ti ti-history"></i>Geçmiş</button>
+        <button class="subtab-btn" data-subtab="anilar"><i class="ti ti-camera"></i>Anılar</button>
+      </div>
+
+      <div id="subtab-gorevler" class="subtab active">
+        <div class="card level-pill">
+          <div class="level-disc" id="quest-level-disc">1</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;" id="quest-level-title">Gezgin çırağı</div>
+            <div class="level-xp-track"><div class="level-xp-fill" id="quest-level-fill" style="width:0%;"></div></div>
+          </div>
+        </div>
+        <div class="card" id="q1">
+          <div class="row"><span style="font-size:14px;font-weight:600;">Bu hafta <span id="q1-target">5</span> km yeni rota keşfet</span><i class="ti ti-target" style="color:var(--accent);font-size:17px;"></i></div>
+          <div class="ptrack"><div class="pfill" id="q1-fill" style="width:0%;"></div></div>
+          <div class="row" style="margin-top:6px;">
+            <span style="font-size:12px;" class="muted" id="q1-label">0.00/5 km</span>
+            <button id="q1-edit-btn" style="background:none;border:none;color:var(--accent);font-size:12px;font-weight:600;padding:0;">Hedefi değiştir</button>
+          </div>
+        </div>
+        <div class="card" id="q2">
+          <div class="row"><span style="font-size:14px;font-weight:600;"><span id="q2-target">5</span> farklı sokak keşfet</span><i class="ti ti-road" style="color:var(--accent);font-size:17px;"></i></div>
+          <div class="ptrack"><div class="pfill" id="q2-fill" style="width:0%;"></div></div>
+          <div style="font-size:12px;margin-top:6px;" class="muted" id="q2-label">0/5 sokak · yürüdükçe/sürdükçe geçtiğin cadde ve sokaklar sayılır</div>
+        </div>
+        <div class="card" id="q3">
+          <div class="row"><span style="font-size:14px;font-weight:600;"><span id="q3-target-text">5</span> sandık bul</span><i class="ti ti-gift" style="color:var(--gold);font-size:17px;"></i></div>
+          <div class="ptrack"><div class="pfill" id="q3-fill" style="width:0%;background:var(--gold);"></div></div>
+          <div style="font-size:12px;margin-top:6px;" class="muted" id="q3-label">0/5 sandık · sis içindeki hücreleri açtıkça ortaya çıkarlar</div>
+        </div>
+        <div class="card" id="q4">
+          <div class="row"><span style="font-size:14px;font-weight:600;">Sis içinde <span id="q4-target">150</span> hücre aç</span><i class="ti ti-cloud-fog" style="color:var(--accent);font-size:17px;"></i></div>
+          <div class="ptrack"><div class="pfill" id="q4-fill" style="width:0%;"></div></div>
+          <div style="font-size:12px;margin-top:6px;" class="muted" id="q4-label">0/150 hücre</div>
+        </div>
+        <div class="card" id="q5">
+          <div class="row"><span style="font-size:14px;font-weight:600;">Yaşadığın çevreyi %<span id="q5-target">50</span> keşfet</span><i class="ti ti-map" style="color:var(--accent);font-size:17px;"></i></div>
+          <div class="ptrack"><div class="pfill" id="q5-fill" style="width:0%;"></div></div>
+          <div style="font-size:12px;margin-top:6px;" class="muted" id="q5-label">%0 / hedef %50</div>
+        </div>
+      </div>
+
+      <div id="subtab-rozetler" class="subtab">
+        <div id="medal-grid" class="medal-grid"></div>
+      </div>
+
+      <div id="subtab-gecmis" class="subtab">
+        <div id="trip-list"></div>
+      </div>
+
+      <div id="subtab-anilar" class="subtab">
+        <button id="ai-journal-btn" class="btn-outline" style="width:100%;margin-bottom:10px;"><i class="ti ti-sparkles" style="margin-right:6px;"></i>AI ile gezi günlüğü oluştur</button>
+        <div id="ai-journal-card" class="card" style="display:none;margin-bottom:12px;">
+          <div class="row" style="margin-bottom:6px;"><span style="font-size:13px;font-weight:600;"><i class="ti ti-sparkles" style="color:var(--accent);margin-right:4px;"></i>Gezi günlüğün</span></div>
+          <div id="ai-journal-text" style="font-size:13px;line-height:1.6;color:var(--text-secondary);white-space:pre-line;"></div>
+        </div>
+        <div id="memo-list"></div>
+        <div class="muted" style="font-size:11px;margin-top:4px;">Yeni anı eklemek için Harita sekmesindeki + butonunu kullan.</div>
+      </div>
+    </div>
+
+    <div id="screen-profil" class="screen">
+      <div class="card">
+        <div class="row">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="avatar guest" id="profile-avatar">
+              <span id="profile-avatar-text"><i class="ti ti-user"></i></span>
+              <span class="avatar-badge" id="avatar-badge" style="display:none;"><i class="ti ti-check"></i></span>
+            </div>
+            <div>
+              <div style="font-size:14px;font-weight:600;" id="profile-name">Kaşif</div>
+              <div style="font-size:12px;" class="muted" id="profile-rank">Kaşif rütben: Gezgin çırağı</div>
+            </div>
+          </div>
+          <div class="level-disc" id="profile-level-disc" style="width:32px;height:32px;font-size:12px;">1</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="sec-label" style="margin:0 0 8px;"><i class="ti ti-cloud"></i>Hesabın <span class="muted" style="font-weight:400;">(verini kalıcı sakla)</span></div>
+        <div id="account-signedout">
+          <div style="font-size:11px;margin-bottom:14px;" class="muted">Hesap oluşturursan keşif verilerin (rota, rozet, pasaport ilerlemesi) bu cihaza değil, hesabına kaydedilir — başka bir telefonda da aynı hesapla girip devam edebilirsin. Fotoğraf/sesli anılar yalnızca bu cihazda kalır.</div>
+
+          <div class="auth-tabs">
+            <button type="button" class="auth-tab active" data-authtab="signup">Hesap oluştur</button>
+            <button type="button" class="auth-tab" data-authtab="signin">Giriş yap</button>
+          </div>
+
+          <div id="auth-pane-signup" class="auth-pane active">
+            <div class="auth-field">
+              <i class="ti ti-user"></i>
+              <input type="text" id="auth-name" placeholder="Adın (rumuz olabilir, opsiyonel)" autocomplete="nickname">
+            </div>
+            <div class="auth-field">
+              <i class="ti ti-mail"></i>
+              <input type="email" id="auth-email-signup" placeholder="E-posta" autocomplete="email">
+            </div>
+            <div class="auth-field">
+              <i class="ti ti-lock"></i>
+              <input type="password" id="auth-password-signup" placeholder="Şifre (en az 6 karakter)" autocomplete="new-password">
+              <button type="button" class="auth-eye" data-target="auth-password-signup" aria-label="Şifreyi göster"><i class="ti ti-eye"></i></button>
+            </div>
+            <button class="btn-primary-auth" id="auth-signup-btn"><span class="btn-label">Hesap oluştur</span></button>
+          </div>
+
+          <div id="auth-pane-signin" class="auth-pane">
+            <div class="auth-field">
+              <i class="ti ti-mail"></i>
+              <input type="email" id="auth-email-signin" placeholder="E-posta" autocomplete="email">
+            </div>
+            <div class="auth-field">
+              <i class="ti ti-lock"></i>
+              <input type="password" id="auth-password-signin" placeholder="Şifre" autocomplete="current-password">
+              <button type="button" class="auth-eye" data-target="auth-password-signin" aria-label="Şifreyi göster"><i class="ti ti-eye"></i></button>
+            </div>
+            <button class="btn-primary-auth" id="auth-signin-btn"><span class="btn-label">Giriş yap</span></button>
+            <button type="button" class="auth-forgot" id="auth-forgot-btn">Şifremi unuttum</button>
+          </div>
+
+          <div class="auth-alert" id="auth-msg-box">
+            <i class="ti ti-alert-circle"></i>
+            <span id="auth-msg"></span>
+          </div>
+        </div>
+        <div id="account-signedin" style="display:none;">
+          <div class="account-chip">
+            <i class="ti ti-circle-check"></i>
+            <div>
+              <div style="font-size:11px;" class="muted">Giriş yapıldı</div>
+              <div style="font-size:13px;font-weight:600;" id="account-email"></div>
+            </div>
+          </div>
+          <button class="btn-outline" id="auth-signout-btn" style="width:100%;margin-top:10px;"><i class="ti ti-logout" style="margin-right:6px;"></i>Çıkış yap</button>
+        </div>
+      </div>
+
+      <div class="sec-label"><i class="ti ti-user-plus"></i>Arkadaşların</div>
+      <div class="card" id="friends-card">
+        <div id="friends-signedout" class="muted" style="font-size:12px;">Arkadaş eklemek için hesabına giriş yapman gerekiyor.</div>
+        <div id="friends-signedin" style="display:none;">
+          <div class="muted" style="font-size:11px;margin-bottom:4px;">Kaşif kodun (arkadaşınla paylaş):</div>
+          <div class="row" style="margin-bottom:12px;">
+            <div id="my-friend-code" style="font-size:12px;font-family:monospace;background:var(--card);padding:8px 10px;border-radius:8px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+            <button class="btn-outline" id="copy-code-btn" style="flex:0 0 auto;padding:8px 12px;"><i class="ti ti-copy"></i></button>
+          </div>
+          <div class="row">
+            <input type="text" id="friend-code-input" placeholder="Arkadaşının kodunu yapıştır" style="flex:1;margin-bottom:0;">
+            <button class="btn-track" id="add-friend-btn" style="flex:0 0 auto;">Ekle</button>
+          </div>
+          <div id="friends-list" style="margin-top:10px;"></div>
+        </div>
+      </div>
+
+      <div class="sec-label"><i class="ti ti-users"></i>Kaşif lider tablosu</div>
+      <div>
+        <span class="chip" id="lb-scope-global" data-lbscope="global" style="display:none;">Herkes</span>
+        <span class="chip active" id="lb-scope-friends" data-lbscope="friends">Arkadaşlar</span>
+      </div>
+      <div class="card" id="leaderboard-card" style="margin-top:8px;">
+        <div id="leaderboard-list" class="muted" style="font-size:12px;">Sıralama için hesap oluşturup giriş yapman gerekiyor.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="navbar">
+    <button class="navbtn active" data-tab="harita"><i class="ti ti-map"></i>Harita</button>
+    <button class="navbtn" data-tab="ilerleme"><i class="ti ti-target"></i>İlerlemem</button>
+    <button class="navbtn" data-tab="profil"><i class="ti ti-user"></i>Profil</button>
+  </div>
+
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal-card settings-card" style="text-align:left;">
+      <div class="row" style="margin-bottom:8px;">
+        <span style="font-size:15px;font-weight:700;"><i class="ti ti-settings" style="color:var(--accent);margin-right:6px;"></i>Ayarlar</span>
+        <i class="ti ti-x" id="settings-close-btn" style="cursor:pointer;color:var(--text-muted);font-size:18px;"></i>
+      </div>
+
+      <div class="sec-label" style="margin-top:6px;"><i class="ti ti-sun"></i>Görünüm</div>
+      <div class="appearance-row">
+        <button class="appearance-opt active" data-appearance="light"><i class="ti ti-sun"></i>Açık</button>
+        <button class="appearance-opt" data-appearance="dark"><i class="ti ti-moon"></i>Koyu</button>
+        <button class="appearance-opt" data-appearance="system"><i class="ti ti-device-mobile"></i>Sistem</button>
+      </div>
+
+      <div class="sec-label"><i class="ti ti-map"></i>Harita teması</div>
+      <div>
+        <span class="chip active" data-theme="auto">Otomatik</span>
+        <span class="chip" data-theme="standard">Sıcak</span>
+        <span class="chip" data-theme="light">Açık</span>
+        <span class="chip" data-theme="dark">Koyu</span>
+        <span class="chip" data-theme="topo">Topografik</span>
+      </div>
+
+      <div class="switch-row">
+        <span class="sr-label"><i class="ti ti-cloud-fog"></i>Sis efekti</span>
+        <label class="switch"><input type="checkbox" id="fog-toggle-input" checked><span class="switch-slider"></span></label>
+      </div>
+      <div class="muted" style="font-size:11px;margin:0 0 10px;" id="fog-stats-line">0 hücre açıldı · 0 sandık bulundu</div>
+
+      <div class="sec-label"><i class="ti ti-sparkles"></i>Rota önerisi için AI (Gemini)</div>
+      <div class="apikey-note">Rota önerilerinin yapay zeka ile hazırlanması için ücretsiz bir Gemini API anahtarı gerekiyor (Google AI Studio'dan alabilirsin). Anahtar yalnızca bu cihazda saklanır.</div>
+      <div class="auth-field">
+        <i class="ti ti-key"></i>
+        <input type="password" id="gemini-key-input" placeholder="Gemini API anahtarın (opsiyonel)">
+        <button type="button" class="auth-eye" id="gemini-key-eye"><i class="ti ti-eye"></i></button>
+      </div>
+      <button class="btn-outline" id="gemini-key-save" style="width:100%;margin-bottom:4px;">Kaydet</button>
+      <div class="muted" style="font-size:11px;margin-bottom:10px;" id="gemini-key-status"></div>
+
+      <button id="reset-btn" style="margin-top:6px;background:transparent;border:1px solid var(--border);color:var(--text-muted);border-radius:10px;padding:10px 12px;font-size:12px;width:100%;">Keşif verilerini sıfırla</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="perm-modal">
+    <div class="modal-card">
+      <i class="ti ti-map-pin" style="font-size:26px;color:var(--accent);"></i>
+      <div style="font-size:14px;font-weight:600;margin:10px 0 6px;">Konumunu kullanmamıza izin ver</div>
+      <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-bottom:16px;">Yakınındaki noktaları gösterebilmemiz ve yürüdüğün yolu haritada işaretleyebilmemiz için konumuna ihtiyacımız var. Onayladıktan sonra tarayıcın kendi izin penceresini gösterecek.</div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-outline" id="perm-no" style="flex:1;">Vazgeç</button>
+        <button class="btn-track" id="perm-yes" style="flex:1.2;">İzin ver</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="addpoi-modal">
+    <div class="modal-card" style="text-align:left;">
+      <div style="font-size:14px;font-weight:600;margin-bottom:10px;text-align:center;"><i class="ti ti-map-pin-plus" style="color:var(--accent);"></i> Yeni nokta ekle</div>
+      <input type="text" id="poi-name-input" placeholder="Nokta adı (ör. Güzel manzara)">
+      <textarea id="poi-note-input" placeholder="Kısa not (opsiyonel)" rows="2"></textarea>
+      <input type="file" accept="image/*" capture="environment" id="poi-photo-input" style="margin-bottom:10px;">
+      <div id="poi-preview-wrap" style="display:none;text-align:center;margin-bottom:10px;"><img id="poi-preview" style="max-width:100%;max-height:140px;border-radius:8px;"></div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-outline" id="addpoi-cancel" style="flex:1;">Vazgeç</button>
+        <button class="btn-track" id="addpoi-save" style="flex:1.2;">Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="addmemo-modal">
+    <div class="modal-card" style="text-align:left;">
+      <div style="font-size:14px;font-weight:600;margin-bottom:10px;text-align:center;"><i class="ti ti-camera" style="color:var(--accent);"></i> Anı ekle</div>
+      <input type="file" accept="image/*" capture="environment" id="memo-photo-input" style="margin-bottom:10px;">
+      <div id="memo-preview-wrap" style="display:none;text-align:center;margin-bottom:10px;"><img id="memo-preview" style="max-width:100%;max-height:140px;border-radius:8px;"></div>
+      <button type="button" class="btn-outline" id="memo-record-btn" style="width:100%;margin-bottom:10px;"><i class="ti ti-microphone" style="margin-right:4px;"></i>Sesli not kaydet</button>
+      <div id="memo-audio-wrap" style="display:none;margin-bottom:10px;"><audio id="memo-audio-preview" controls style="width:100%;"></audio></div>
+      <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">Bu anı seni nasıl hissettirdi?</div>
+      <div id="memo-mood-picker" style="display:flex;gap:6px;margin-bottom:10px;">
+        <button type="button" class="mood-btn" data-mood="😍">😍</button>
+        <button type="button" class="mood-btn" data-mood="😊">😊</button>
+        <button type="button" class="mood-btn" data-mood="😲">😲</button>
+        <button type="button" class="mood-btn" data-mood="😌">😌</button>
+        <button type="button" class="mood-btn" data-mood="🥵">🥵</button>
+        <button type="button" class="mood-btn" data-mood="😢">😢</button>
+      </div>
+      <textarea id="memo-note-input" placeholder="Bu anda ne oldu?" rows="2"></textarea>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-outline" id="addmemo-cancel" style="flex:1;">Vazgeç</button>
+        <button class="btn-track" id="addmemo-save" style="flex:1.2;">Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="sharepublic-modal">
+    <div class="modal-card" style="text-align:left;">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px;text-align:center;"><i class="ti ti-world" style="color:var(--accent);"></i> Herkese paylaş</div>
+      <div style="font-size:12px;color:var(--text-muted);text-align:center;margin-bottom:10px;">Bu fotoğraf ve not, uygulamayı kullanan herkesin haritasında görünecek.</div>
+      <input type="file" accept="image/*" capture="environment" id="sharepublic-photo-input" style="margin-bottom:10px;">
+      <div id="sharepublic-preview-wrap" style="display:none;text-align:center;margin-bottom:10px;"><img id="sharepublic-preview" style="max-width:100%;max-height:140px;border-radius:8px;"></div>
+      <textarea id="sharepublic-note-input" placeholder="Kısa bir not (opsiyonel)" rows="2"></textarea>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-outline" id="sharepublic-cancel" style="flex:1;">Vazgeç</button>
+        <button class="btn-track" id="sharepublic-save" style="flex:1.2;">Paylaş</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="chest-modal">
+    <div class="modal-card">
+      <i class="ti ti-gift" style="font-size:26px;color:var(--gold);"></i>
+      <div style="font-size:14px;font-weight:600;margin:10px 0 6px;" id="chest-modal-title">Sandık açıldı!</div>
+      <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-bottom:16px;" id="chest-modal-text"></div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-outline" id="chest-modal-close" style="flex:1;">Kapat</button>
+        <button class="btn-track" id="chest-modal-memo" style="flex:1.2;"><i class="ti ti-camera" style="margin-right:4px;"></i>Anı ekle</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="tip-overlay" id="tip-overlay">
+    <div class="tip-card">
+      <i class="ti ti-compass" style="font-size:26px;color:var(--accent);"></i>
+      <div style="font-size:14px;font-weight:600;margin:10px 0 6px;">Patika'ya hoş geldin</div>
+      <div style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-bottom:16px;">Haritadaki + butonuyla nokta ya da anı ekle, alttaki büyük butonla takibi başlat. "Detaylar" ile keşif yüzdelerini görebilirsin.</div>
+      <button class="btn-track" id="tip-close" style="width:100%;">Anladım</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+  try{
+    var iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%2328425E"/><circle cx="50" cy="50" r="30" fill="none" stroke="%23FFFFFF" stroke-width="6"/><path d="M50 28 L60 50 L50 72 L40 50 Z" fill="%23FFFFFF"/></svg>';
+    var manifest = {
+      name:'Patika – Keşif', short_name:'Patika', start_url:'.', scope:'.',
+      display:'standalone', background_color:'#FAFAF8', theme_color:'#28425E',
+      icons:[{src:'data:image/svg+xml,'+iconSvg, sizes:'any', type:'image/svg+xml', purpose:'any maskable'}]
+    };
+    var blob = new Blob([JSON.stringify(manifest)], {type:'application/manifest+json'});
+    var link = document.createElement('link');
+    link.rel = 'manifest';
+    link.href = URL.createObjectURL(blob);
+    document.head.appendChild(link);
+  }catch(e){}
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('sw.js').catch(function(err){
+        console.warn('Service worker kaydedilemedi:', err);
+      });
+    });
+  }
+
+  var STORAGE_KEY = 'patika_v1';
+  function loadState(){
+    try{
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if(raw) return JSON.parse(raw);
+    }catch(e){}
+    return { home:null, visitedCells:{ev:[],mahalle:[],ilce:[],sehir:[]}, totalDistance:0, poisVisited:{}, customPois:[], memories:[], antikCollection:{}, trips:[], badges:{}, fogCells:[], chests:[], chestsOpened:0, fogEnabled:true, friends:[], paintedWays:[], appearance:'light', modeOverride:'auto' };
+  }
+  var currentUser = null;
+  var syncDebounceTimer = null;
+  function getCloudSyncPayload(){
+    return {
+      home: state.home || null,
+      displayName: state.displayName || null,
+      visitedCells: state.visitedCells,
+      totalDistance: state.totalDistance || 0,
+      poisVisited: state.poisVisited || {},
+      customPois: state.customPois || [],
+      trips: state.trips || [],
+      badges: state.badges || {},
+      regionsVisited: state.regionsVisited || {},
+      fogCells: state.fogCells || [],
+      chests: state.chests || [],
+      chestsOpened: state.chestsOpened || 0,
+      fogEnabled: typeof state.fogEnabled === 'boolean' ? state.fogEnabled : true,
+      friends: state.friends || [],
+      streak: state.streak || null,
+      weeklyGoalKm: state.weeklyGoalKm || 5,
+      weeklyGoalKmAuto: state.weeklyGoalKmAuto !== false,
+      q5Target: state.q5Target || 50,
+      mapTheme: state.mapTheme || 'auto',
+      modeOverride: state.modeOverride || 'auto',
+      appearance: state.appearance || 'light',
+      paintedWays: state.paintedWays || [],
+      tipSeen: !!state.tipSeen,
+      locationConsent: !!state.locationConsent
+      // Not: geminiApiKey kasıtlı olarak buluta gönderilmiyor, yalnızca bu cihazda kalıyor.
+    };
+  }
+  function saveState(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+    if(currentUser && fbReady && db){
+      clearTimeout(syncDebounceTimer);
+      syncDebounceTimer = setTimeout(function(){
+        db.collection('users').doc(currentUser.uid).set(getCloudSyncPayload()).catch(function(){});
+        db.collection('leaderboard').doc(currentUser.uid).set({
+          displayName: state.displayName || 'Kaşif',
+          totalDistanceKm: Math.round((state.totalDistance||0)/10)/100,
+          chestsOpened: state.chestsOpened || 0,
+          updatedAt: Date.now()
+        }).catch(function(){});
+      }, 1500);
+    }
+  }
+  var state = loadState();
+  state.customPois = state.customPois || [];
+  state.memories = state.memories || [];
+  state.antikCollection = state.antikCollection || {};
+  state.trips = state.trips || [];
+  state.badges = state.badges || {};
+  state.regionsVisited = state.regionsVisited || {};
+  state.fogCells = state.fogCells || [];
+  state.chests = state.chests || [];
+  state.chestsOpened = state.chestsOpened || 0;
+  state.friends = state.friends || [];
+  state.paintedWays = state.paintedWays || [];
+  if(!state.appearance) state.appearance = 'light';
+  if(!state.modeOverride) state.modeOverride = 'auto';
+  if(typeof state.fogEnabled !== 'boolean') state.fogEnabled = true;
+
+  var accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#28425E';
+  var driveColor = getComputedStyle(document.documentElement).getPropertyValue('--drive').trim() || '#B9791F';
+  var map = L.map('map', {zoomControl:false, attributionControl:false}).setView([38.9637, 35.2433], 6);
+  var personalLayer = L.layerGroup().addTo(map);
+  var publicLayer = L.layerGroup();
+  var routeLayer = L.layerGroup().addTo(map);
+  var mapMode = 'personal';
+
+  var fbReady = false, db = null, auth = null;
+  try{
+    var firebaseConfig = {
+      apiKey: "AIzaSyBedUytXcAYpJtsDHC_OH7CE8b5e_K4KJo",
+      authDomain: "patika-cc1d6.firebaseapp.com",
+      projectId: "patika-cc1d6",
+      storageBucket: "patika-cc1d6.firebasestorage.app",
+      messagingSenderId: "115643175233",
+      appId: "1:115643175233:web:e40b25b02236381780d1c0"
+    };
+    if(typeof firebase !== 'undefined'){
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+      auth = firebase.auth();
+      auth.languageCode = 'tr';
+      fbReady = true;
+    }
+  }catch(e){ fbReady = false; }
+  L.control.attribution({position:'bottomleft'}).addTo(map);
+  var mapThemes = {
+    standard: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+    light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+    dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+    topo: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
+  };
+  function isEveningNow(){
+    var h = new Date().getHours();
+    return (h >= 19 || h < 7);
+  }
+  function effectiveThemeKey(){
+    var chosen = state.mapTheme || 'auto';
+    if(chosen === 'auto'){ return isEveningNow() ? 'dark' : 'standard'; }
+    return chosen;
+  }
+  function applyMapTheme(){
+    tileLayer.setUrl(mapThemes[effectiveThemeKey()]);
+  }
+  var tileLayer = L.tileLayer(mapThemes[effectiveThemeKey()], {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap katkıda bulunanlar &copy; CARTO'
+  }).addTo(map);
+  setInterval(function(){ if((state.mapTheme||'auto')==='auto'){ applyMapTheme(); } }, 15*60*1000);
+  var tileErrorShown = false;
+  tileLayer.on('tileerror', function(){
+    if(!tileErrorShown){ tileErrorShown = true; gpsMsg('Harita karoları yüklenemedi. İnternet bağlantını kontrol et ya da bu sayfayı barındırılmış bir bağlantıdan aç.'); }
+  });
+
+  var segments = [];
+  var currentSegment = null;
+  function colorForMode(mode){ return mode==='drive' ? driveColor : accent; }
+  function extendPath(latlng, mode){
+    if(!currentSegment || currentSegment.mode !== mode){
+      var start = currentSegment ? currentSegment.polyline.getLatLngs().slice(-1)[0] : latlng;
+      var casing = L.polyline([start, latlng], {color: colorForMode(mode), weight:12, opacity:0.25, lineCap:'round', lineJoin:'round'}).addTo(personalLayer);
+      var poly = L.polyline([start, latlng], {color: colorForMode(mode), weight:6, opacity:0.95, lineCap:'round', lineJoin:'round'}).addTo(personalLayer);
+      currentSegment = {mode:mode, polyline:poly, casing:casing};
+      segments.push(currentSegment);
+    } else {
+      currentSegment.polyline.addLatLng(latlng);
+      currentSegment.casing.addLatLng(latlng);
+    }
+  }
+  // ---- Ulaşım modu: varsayılan otomatik, hız üzerinden arka planda algılanır ----
+  var MODE_LABELS = {walk:'Yürüyor', bike:'Bisiklet sürüyor', drive:'Araç kullanıyor'};
+  var modeOverride = state.modeOverride || 'auto';
+  var lastAutoDetected = 'walk';
+  function detectMode(prevPt, pt){
+    if(modeOverride !== 'auto') return modeOverride;
+    if(prevPt && pt && pt.t > prevPt.t){
+      var d = distMeters(prevPt, pt);
+      var secs = (pt.t - prevPt.t)/1000;
+      if(secs > 0){
+        var kmh = (d/secs) * 3.6;
+        if(kmh > 25) lastAutoDetected = 'drive';
+        else if(kmh > 8) lastAutoDetected = 'bike';
+        else lastAutoDetected = 'walk';
+      }
+    }
+    return lastAutoDetected;
+  }
+  function updateModeAutoLine(){
+    var el = document.getElementById('mode-auto-line');
+    if(!el) return;
+    el.textContent = modeOverride === 'auto' ? ('Otomatik algılama: ' + (MODE_LABELS[lastAutoDetected] || 'Yürüyor')) : '';
+  }
+  document.querySelectorAll('.mode-icon-btn').forEach(function(btn){
+    if(btn.getAttribute('data-mode') === modeOverride) btn.classList.add('active');
+    else btn.classList.remove('active');
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.mode-icon-btn').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      modeOverride = btn.getAttribute('data-mode');
+      state.modeOverride = modeOverride;
+      saveState();
+      updateModeAutoLine();
+    });
+  });
+  updateModeAutoLine();
+
+  var followMode = true;
+  map.on('dragstart', function(){ if(tracking){ followMode = false; } });
+
+  var userMarker = null, accuracyCircle = null;
+  var trackPoints = [];
+  var tracking = false, watchId = null, pendingFlyTo = false;
+  var totalDistance = state.totalDistance || 0;
+  var sessionDistance = 0;
+
+  function distMeters(a,b){
+    var R=6371000;
+    var dLat=(b.lat-a.lat)*Math.PI/180, dLng=(b.lng-a.lng)*Math.PI/180;
+    var lat1=a.lat*Math.PI/180, lat2=b.lat*Math.PI/180;
+    var x=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.sin(dLng/2)*Math.sin(dLng/2)*Math.cos(lat1)*Math.cos(lat2);
+    return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+  }
+
+  function encodeShare(obj){
+    try{ return btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }catch(e){ return ''; }
+  }
+  function decodeShare(str){
+    try{ return JSON.parse(decodeURIComponent(escape(atob(str)))); }catch(e){ return null; }
+  }
+
+  var customMarkers = {};
+  function customPoiIcon(){
+    return L.divIcon({
+      className:'', html:'<div class="poi-pin"><i class="ti ti-map-pin-star"></i></div>',
+      iconSize:[26,26], iconAnchor:[13,13]
+    });
+  }
+  function sharePoiLink(poi){
+    var payload = encodeShare({n:poi.name, no:poi.note||'', la:poi.lat, ln:poi.lng});
+    var url = new URL(location.href);
+    url.search = '';
+    url.searchParams.set('poi', payload);
+    var shareData = {title:'Patika', text:'"'+poi.name+'" adlı noktayı senle paylaştım.', url:url.toString()};
+    if(navigator.share){ navigator.share(shareData).catch(function(){}); }
+    else if(navigator.clipboard){ navigator.clipboard.writeText(url.toString()).then(function(){ gpsMsg('Link panoya kopyalandı.'); }); }
+  }
+  function addCustomPoiMarker(poi){
+    var m = L.marker([poi.lat, poi.lng], {icon: customPoiIcon()}).addTo(personalLayer);
+    var html = '<div style="text-align:center;min-width:150px;max-width:200px;">'+
+      (poi.photo ? '<img src="'+poi.photo+'" style="width:100%;border-radius:8px;margin-bottom:6px;">' : '')+
+      '<div style="font-size:13px;font-weight:600;margin-bottom:4px;">'+escapeHtml(poi.name)+'</div>'+
+      (poi.note ? '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">'+escapeHtml(poi.note)+'</div>' : '')+
+      '<div style="display:flex;gap:6px;justify-content:center;">'+
+      '<button id="cpoi-share-'+poi.id+'" style="background:var(--accent);color:var(--on-accent);border:none;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:600;">Paylaş</button>'+
+      '<button id="cpoi-del-'+poi.id+'" style="background:none;border:1px solid var(--border);color:var(--text-muted);border-radius:8px;padding:6px 10px;font-size:11px;">Sil</button>'+
+      '</div></div>';
+    m.bindPopup(html);
+    m.on('popupopen', function(){
+      var sb = document.getElementById('cpoi-share-'+poi.id);
+      var delBtn = document.getElementById('cpoi-del-'+poi.id);
+      if(sb) sb.addEventListener('click', function(){ sharePoiLink(poi); });
+      if(delBtn) delBtn.addEventListener('click', function(){
+        if(confirm('"'+poi.name+'" noktasını silmek istediğine emin misin?')){
+          map.removeLayer(m);
+          delete customMarkers[poi.id];
+          state.customPois = state.customPois.filter(function(p){ return p.id !== poi.id; });
+          saveState();
+        }
+      });
+    });
+    customMarkers[poi.id] = m;
+  }
+  state.customPois.forEach(addCustomPoiMarker);
+
+  var pendingPoiPhoto = null;
+  document.getElementById('poi-photo-input').addEventListener('change', function(e){
+    var file = e.target.files[0];
+    if(!file) return;
+    resizeImage(file, function(dataUrl){
+      pendingPoiPhoto = dataUrl;
+      document.getElementById('poi-preview').src = dataUrl;
+      document.getElementById('poi-preview-wrap').style.display = 'block';
+    });
+  });
+  document.getElementById('addpoi-btn').addEventListener('click', function(){
+    var last = userMarker ? userMarker.getLatLng() : null;
+    function openForm(lat,lng){
+      document.getElementById('poi-name-input').value = '';
+      document.getElementById('poi-note-input').value = '';
+      document.getElementById('poi-photo-input').value = '';
+      document.getElementById('poi-preview-wrap').style.display = 'none';
+      pendingPoiPhoto = null;
+      document.getElementById('addpoi-modal').classList.add('show');
+      document.getElementById('addpoi-save').onclick = function(){
+        var name = document.getElementById('poi-name-input').value.trim();
+        if(!name) return;
+        var note = document.getElementById('poi-note-input').value.trim();
+        var poi = {id:'c'+Date.now(), name:name, note:note, photo:pendingPoiPhoto, lat:lat, lng:lng};
+        state.customPois.push(poi);
+        saveState();
+        addCustomPoiMarker(poi);
+        document.getElementById('addpoi-modal').classList.remove('show');
+        if(navigator.vibrate){ navigator.vibrate(50); }
+      };
+    }
+    if(last){
+      openForm(last.lat, last.lng);
+    } else if(navigator.geolocation){
+      askLocationPermission(function(){
+        navigator.geolocation.getCurrentPosition(function(pos){
+          openForm(pos.coords.latitude, pos.coords.longitude);
+        }, function(err){ gpsMsg(gpsErrorText(err)); });
+      });
+    } else {
+      gpsMsg('Önce "Konumumu bul" ile konumunu al.');
+    }
+  });
+  document.getElementById('addpoi-cancel').addEventListener('click', function(){
+    document.getElementById('addpoi-modal').classList.remove('show');
+  });
+
+  function resizeImage(file, cb){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var img = new Image();
+      img.onload = function(){
+        var scale = Math.min(1, 480/img.width);
+        var canvas = document.createElement('canvas');
+        canvas.width = img.width*scale;
+        canvas.height = img.height*scale;
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        cb(canvas.toDataURL('image/jpeg', 0.6));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+  var pendingPhoto = null;
+  document.getElementById('memo-photo-input').addEventListener('change', function(e){
+    var file = e.target.files[0];
+    if(!file) return;
+    resizeImage(file, function(dataUrl){
+      pendingPhoto = dataUrl;
+      document.getElementById('memo-preview').src = dataUrl;
+      document.getElementById('memo-preview-wrap').style.display = 'block';
+    });
+  });
+
+  var pendingAudio = null, mediaRecorder = null, audioChunks = [], isRecording = false;
+  document.getElementById('memo-record-btn').addEventListener('click', function(){
+    var btn = document.getElementById('memo-record-btn');
+    if(!isRecording){
+      if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder==='undefined'){
+        gpsMsg('Bu tarayıcı ses kaydını desteklemiyor.');
+        return;
+      }
+      navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+        audioChunks = [];
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = function(e){ if(e.data.size>0) audioChunks.push(e.data); };
+        mediaRecorder.onstop = function(){
+          var blob = new Blob(audioChunks, {type: mediaRecorder.mimeType || 'audio/webm'});
+          var reader = new FileReader();
+          reader.onload = function(e){
+            pendingAudio = e.target.result;
+            document.getElementById('memo-audio-preview').src = pendingAudio;
+            document.getElementById('memo-audio-wrap').style.display = 'block';
+          };
+          reader.readAsDataURL(blob);
+          stream.getTracks().forEach(function(t){ t.stop(); });
+        };
+        mediaRecorder.start();
+        isRecording = true;
+        btn.innerHTML = '<i class="ti ti-player-stop-filled" style="margin-right:4px;color:var(--warn);"></i>Kaydı durdur';
+      }).catch(function(){ gpsMsg('Mikrofon izni alınamadı.'); });
+    } else {
+      if(mediaRecorder) mediaRecorder.stop();
+      isRecording = false;
+      btn.innerHTML = '<i class="ti ti-microphone" style="margin-right:4px;"></i>Sesli not kaydet';
+    }
+  });
+
+  var pendingMood = null;
+  document.querySelectorAll('.mood-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var already = btn.classList.contains('active');
+      document.querySelectorAll('.mood-btn').forEach(function(b){ b.classList.remove('active'); });
+      if(!already){
+        btn.classList.add('active');
+        pendingMood = btn.getAttribute('data-mood');
+      } else {
+        pendingMood = null;
+      }
+    });
+  });
+  document.getElementById('addmemo-btn').addEventListener('click', function(){
+    pendingPhoto = null;
+    pendingAudio = null;
+    pendingMood = null;
+    isRecording = false;
+    document.getElementById('memo-photo-input').value = '';
+    document.getElementById('memo-note-input').value = '';
+    document.getElementById('memo-preview-wrap').style.display = 'none';
+    document.getElementById('memo-audio-wrap').style.display = 'none';
+    document.querySelectorAll('.mood-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('memo-record-btn').innerHTML = '<i class="ti ti-microphone" style="margin-right:4px;"></i>Sesli not kaydet';
+    document.getElementById('addmemo-modal').classList.add('show');
+  });
+  document.getElementById('addmemo-cancel').addEventListener('click', function(){
+    if(mediaRecorder && isRecording){ mediaRecorder.stop(); isRecording = false; }
+    document.getElementById('addmemo-modal').classList.remove('show');
+  });
+  document.getElementById('addmemo-save').addEventListener('click', function(){
+    var note = document.getElementById('memo-note-input').value.trim();
+    if(!pendingPhoto && !pendingAudio && !note && !pendingMood){ document.getElementById('addmemo-modal').classList.remove('show'); return; }
+    var loc = userMarker ? userMarker.getLatLng() : null;
+    var memo = {id:'m'+Date.now(), photo:pendingPhoto, audio:pendingAudio, mood:pendingMood, note:note, date: todayStr(), lat: loc?loc.lat:null, lng: loc?loc.lng:null};
+    state.memories.unshift(memo);
+    try{ saveState(); }catch(e){ state.memories.shift(); gpsMsg('Anı kaydedilemedi, depolama alanı dolu olabilir (sesli notlar daha çok yer kaplar).'); return; }
+    renderMemories();
+    if(memo.lat!==null){ addMemoMarker(memo); }
+    else { gpsMsg('Anı kaydedildi ama konum bilinmediği için haritada gösterilemedi. Önce "Konumumu bul" ile konum al.'); }
+    document.getElementById('addmemo-modal').classList.remove('show');
+  });
+  function renderMemories(){
+    var list = document.getElementById('memo-list');
+    list.innerHTML = '';
+    state.memories.forEach(function(m){
+      var card = document.createElement('div');
+      card.className = 'memo-card';
+      card.style.alignItems = 'flex-start';
+      var audioHtml = m.audio ? '<audio controls src="'+m.audio+'" style="width:100%;height:32px;margin-top:4px;"></audio>' : '';
+      card.innerHTML = (m.photo ? '<img src="'+m.photo+'">' : '') +
+        '<div style="flex:1;"><div style="font-size:13px;">'+(m.note || '<span class="muted">Not yok</span>')+'</div>'+
+        '<div style="font-size:11px;" class="muted">'+m.date+'</div>'+audioHtml+'</div>'+
+        '<button class="memo-del" data-id="'+m.id+'"><i class="ti ti-trash"></i></button>';
+      list.appendChild(card);
+    });
+    list.querySelectorAll('.memo-del').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        deleteMemory(btn.getAttribute('data-id'));
+      });
+    });
+  }
+  renderMemories();
+
+  function generateAiJournal(){
+    var btn = document.getElementById('ai-journal-btn');
+    var card = document.getElementById('ai-journal-card');
+    var textEl = document.getElementById('ai-journal-text');
+    if(!state.memories || state.memories.length === 0){
+      gpsMsg('Henüz bir anın yok, önce Harita sekmesinden birkaç anı ekle.');
+      return;
+    }
+    var notes = state.memories.slice(0, 25).map(function(m){
+      return m.date + ': ' + (m.note ? m.note : '(notsuz bir kare)');
+    }).reverse().join('\n');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ti ti-loader-2 spin" style="margin-right:6px;"></i>Günlük yazılıyor…';
+    card.style.display = 'none';
+    fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: 'Aşağıda bir kullanıcının "Patika" adlı keşif uygulamasına kaydettiği anı notları var (tarih: not formatında, eskiden yeniye sıralı). Bunlardan sıcak, samimi, "sen" diliyle yazılmış, 2-3 paragraflık kısa bir gezi günlüğü metni oluştur. Notlarda geçmeyen hiçbir yer adı, tarih ya da olay uydurma; sadece verilenlerden yola çık. Sadece günlük metnini döndür, başka açıklama ekleme.\n\nNotlar:\n' + notes
+        }]
+      })
+    }).then(function(res){ return res.json(); })
+      .then(function(data){
+        var blocks = (data && data.content) || [];
+        var journal = blocks.filter(function(b){ return b.type === 'text'; }).map(function(b){ return b.text; }).join('\n\n').trim();
+        if(!journal){ throw new Error('empty'); }
+        textEl.textContent = journal;
+        card.style.display = 'block';
+      })
+      .catch(function(){
+        gpsMsg('Günlük oluşturulamadı, bağlantını kontrol edip tekrar dene.');
+      })
+      .finally(function(){
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ti ti-sparkles" style="margin-right:6px;"></i>AI ile gezi günlüğü oluştur';
+      });
+  }
+  var aiJournalBtn = document.getElementById('ai-journal-btn');
+  if(aiJournalBtn){ aiJournalBtn.addEventListener('click', generateAiJournal); }
+
+  var memoMarkers = {};
+  function memoIcon(){
+    return L.divIcon({
+      className:'', html:'<div class="poi-pin" style="background:var(--drive);"><i class="ti ti-camera"></i></div>',
+      iconSize:[26,26], iconAnchor:[13,13]
+    });
+  }
+  function addMemoMarker(m){
+    if(typeof m.lat !== 'number' || typeof m.lng !== 'number') return;
+    var mk = L.marker([m.lat, m.lng], {icon: memoIcon()}).addTo(personalLayer);
+    mk.bindPopup(memoPopupHtml(m));
+    mk.on('popupopen', function(){
+      var delBtn = document.getElementById('memo-del-map-'+m.id);
+      if(delBtn) delBtn.addEventListener('click', function(){ deleteMemory(m.id); });
+    });
+    memoMarkers[m.id] = mk;
+  }
+  function removeMemoMarker(id){
+    if(memoMarkers[id]){ personalLayer.removeLayer(memoMarkers[id]); delete memoMarkers[id]; }
+  }
+  function deleteMemory(id){
+    state.memories = state.memories.filter(function(m){ return m.id !== id; });
+    saveState();
+    removeMemoMarker(id);
+    renderMemories();
+  }
+  function memoPopupHtml(m){
+    return '<div style="text-align:center;min-width:150px;max-width:200px;">'+
+      (m.mood ? '<div style="font-size:22px;margin-bottom:4px;">'+m.mood+'</div>' : '')+
+      (m.photo ? '<img src="'+m.photo+'" style="width:100%;border-radius:8px;margin-bottom:6px;">' : '')+
+      (m.note ? '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px;">'+escapeHtml(m.note)+'</div>' : '')+
+      (m.audio ? '<audio controls src="'+m.audio+'" style="width:100%;height:30px;margin-bottom:6px;"></audio>' : '')+
+      '<div style="font-size:10px;color:var(--text-muted);">'+m.date+'</div>'+
+      '<button id="memo-del-map-'+m.id+'" style="margin-top:6px;background:none;border:1px solid var(--border);color:var(--text-muted);border-radius:8px;padding:5px 10px;font-size:11px;">Sil</button>'+
+      '</div>';
+  }
+  state.memories.forEach(function(m){ addMemoMarker(m); });
+
+  function escapeHtml(s){
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+  function timeAgo(ts){
+    var sec = Math.round((Date.now()-ts)/1000);
+    if(sec<60) return 'az önce';
+    var min = Math.round(sec/60);
+    if(min<60) return min+' dk önce';
+    var hr = Math.round(min/60);
+    if(hr<24) return hr+' sa önce';
+    var day = Math.round(hr/24);
+    return day+' gün önce';
+  }
+  function publicPinIcon(){
+    return L.divIcon({
+      className:'', html:'<div class="poi-pin"><i class="ti ti-camera"></i></div>',
+      iconSize:[26,26], iconAnchor:[13,13]
+    });
+  }
+  var publicUnsub = null;
+  function subscribePublicPins(){
+    if(!fbReady || publicUnsub) return;
+    gpsMsg('Herkesin haritası yükleniyor…');
+    publicUnsub = db.collection('public_pins').orderBy('ts','desc').limit(200).onSnapshot(function(snapshot){
+      gpsMsg('');
+      publicLayer.clearLayers();
+      snapshot.forEach(function(doc){
+        var d = doc.data();
+        if(typeof d.lat !== 'number' || typeof d.lng !== 'number') return;
+        var html = '<div style="text-align:center;min-width:150px;max-width:200px;">'+
+          (d.photo ? '<img src="'+d.photo+'" style="width:100%;border-radius:8px;margin-bottom:6px;">' : '')+
+          (d.caption ? '<div style="font-size:12px;color:var(--text-secondary);">'+escapeHtml(d.caption)+'</div>' : '')+
+          '<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">'+timeAgo(d.ts)+'</div></div>';
+        L.marker([d.lat, d.lng], {icon: publicPinIcon()}).bindPopup(html).addTo(publicLayer);
+      });
+    }, function(err){
+      gpsMsg('Herkesin haritası yüklenemedi: '+err.message);
+    });
+  }
+  function unsubscribePublicPins(){
+    if(publicUnsub){ publicUnsub(); publicUnsub = null; }
+  }
+  function setMapMode(mode){
+    mapMode = mode;
+    if(mode === 'personal'){
+      if(map.hasLayer(publicLayer)) map.removeLayer(publicLayer);
+      if(!map.hasLayer(personalLayer)) personalLayer.addTo(map);
+      if(fogLayer && !map.hasLayer(fogLayer)) fogLayer.addTo(map);
+      if(!map.hasLayer(routeLayer)) routeLayer.addTo(map);
+      unsubscribePublicPins();
+    } else {
+      if(map.hasLayer(personalLayer)) map.removeLayer(personalLayer);
+      if(!map.hasLayer(publicLayer)) publicLayer.addTo(map);
+      if(fogLayer && map.hasLayer(fogLayer)) map.removeLayer(fogLayer);
+      if(map.hasLayer(routeLayer)) map.removeLayer(routeLayer);
+      if(!fbReady){ gpsMsg('Ortak harita şu an ayarlanmamış görünüyor.'); }
+      else{ subscribePublicPins(); }
+    }
+  }
+  document.querySelectorAll('.mmode-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.mmode-btn').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      setMapMode(btn.getAttribute('data-mmode'));
+    });
+  });
+
+  function resizeImageStrict(file, cb){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var img = new Image();
+      img.onload = function(){
+        var scale = Math.min(1, 320/img.width);
+        var canvas = document.createElement('canvas');
+        canvas.width = img.width*scale;
+        canvas.height = img.height*scale;
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        cb(canvas.toDataURL('image/jpeg', 0.5));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+  var pendingPublicPhoto = null;
+  document.getElementById('sharepublic-btn').addEventListener('click', function(){
+    pendingPublicPhoto = null;
+    document.getElementById('sharepublic-photo-input').value = '';
+    document.getElementById('sharepublic-note-input').value = '';
+    document.getElementById('sharepublic-preview-wrap').style.display = 'none';
+    document.getElementById('sharepublic-modal').classList.add('show');
+  });
+  document.getElementById('sharepublic-photo-input').addEventListener('change', function(e){
+    var file = e.target.files[0];
+    if(!file) return;
+    resizeImageStrict(file, function(dataUrl){
+      pendingPublicPhoto = dataUrl;
+      document.getElementById('sharepublic-preview').src = dataUrl;
+      document.getElementById('sharepublic-preview-wrap').style.display = 'block';
+    });
+  });
+  document.getElementById('sharepublic-cancel').addEventListener('click', function(){
+    document.getElementById('sharepublic-modal').classList.remove('show');
+  });
+  document.getElementById('sharepublic-save').addEventListener('click', function(){
+    var saveBtn = document.getElementById('sharepublic-save');
+    if(saveBtn.disabled) return;
+    if(!fbReady){ gpsMsg('Paylaşım şu an kullanılamıyor.'); return; }
+    if(!pendingPublicPhoto){ gpsMsg('Önce bir fotoğraf seç.'); return; }
+    var loc = userMarker ? userMarker.getLatLng() : null;
+    if(!loc){ gpsMsg('Önce "Konumumu bul" ile konumunu al.'); return; }
+    var caption = document.getElementById('sharepublic-note-input').value.trim().slice(0,300);
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Paylaşılıyor…';
+    db.collection('public_pins').add({
+      lat: loc.lat, lng: loc.lng, photo: pendingPublicPhoto, caption: caption, ts: Date.now()
+    }).then(function(){
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Paylaş';
+      document.getElementById('sharepublic-modal').classList.remove('show');
+      gpsMsg('Fotoğrafın herkese açık haritaya eklendi.');
+      if(navigator.vibrate) navigator.vibrate(50);
+    }).catch(function(err){
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Paylaş';
+      gpsMsg('Paylaşılamadı: '+err.message);
+    });
+  });
+
+  var historyLine = null;
+  function formatTripDate(ts){
+    var d = new Date(ts);
+    return d.toLocaleDateString('tr-TR', {day:'2-digit', month:'2-digit'}) + ' · ' + d.toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'});
+  }
+  function endCurrentTrip(){
+    if(trackPoints.length < 2 || sessionDistance < 10) return;
+    var thin = trackPoints.filter(function(p,i,arr){ return i % Math.ceil(arr.length/50) === 0 || i===arr.length-1; }).map(function(p){ return [p.lat, p.lng]; });
+    var durationMin = Math.round((trackPoints[trackPoints.length-1].t - trackPoints[0].t)/60000);
+    var trip = {id:'t'+Date.now(), ts: trackPoints[0].t, distanceKm: sessionDistance/1000, durationMin: durationMin, points: thin};
+    state.trips.unshift(trip);
+    if(state.trips.length > 30){ state.trips = state.trips.slice(0,30); }
+    saveState();
+    renderTrips();
+  }
+  function showTripOnMap(trip){
+    var harBtn = document.querySelector('.navbtn[data-tab="harita"]');
+    if(harBtn) harBtn.click();
+    var personalBtn = document.querySelector('.mmode-btn[data-mmode="personal"]');
+    if(personalBtn) personalBtn.click();
+    if(historyLine){ personalLayer.removeLayer(historyLine); }
+    historyLine = L.polyline(trip.points, {color: accent, weight:5, opacity:0.5, dashArray:'2 8'}).addTo(personalLayer);
+    map.fitBounds(historyLine.getBounds(), {padding:[24,24]});
+    gpsMsg(formatTripDate(trip.ts)+' tarihli gezi haritada gösteriliyor (soluk, kesikli çizgi).');
+  }
+  function renderTrips(){
+    var list = document.getElementById('trip-list');
+    if(!list) return;
+    if(state.trips.length === 0){
+      list.innerHTML = '<div class="muted" style="font-size:12px;">Henüz kaydedilmiş bir gezin yok. Takibi başlatıp durdurduğunda burada görünecek.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    state.trips.forEach(function(trip){
+      var card = document.createElement('div');
+      card.className = 'card';
+      card.style.cursor = 'pointer';
+      card.innerHTML = '<div class="row"><span style="font-size:13px;font-weight:600;">'+formatTripDate(trip.ts)+'</span><i class="ti ti-chevron-right" style="color:var(--text-muted);"></i></div>'+
+        '<div style="font-size:12px;" class="muted">'+trip.distanceKm.toFixed(2)+' km · '+trip.durationMin+' dk</div>';
+      card.addEventListener('click', function(){ showTripOnMap(trip); });
+      list.appendChild(card);
+    });
+  }
+  renderTrips();
+
+  var BADGE_DEFS = {
+    ilk_km: {title:'İlk 1 km', icon:'ti-flag-3', hint:'1 km yol kaydet'},
+    gece_kasifi: {title:'Gece kaşifi', icon:'ti-moon', hint:'Gece 22:00–05:00 arası hareket kaydet'},
+    hafta_sonu_gezgini: {title:'Hafta sonu gezgini', icon:'ti-calendar-event', hint:'Hafta sonu hareket kaydet'},
+    ilk_sandik: {title:'İlk sandık', icon:'ti-gift', hint:'İlk sandığını bul'},
+    sandik_avcisi: {title:'Sandık avcısı', icon:'ti-gift', hint:'5 sandık bul'},
+    sandik_ustasi: {title:'Sandık ustası', icon:'ti-trophy', hint:'20 sandık bul'},
+    sis_acici: {title:'Sis açıcı', icon:'ti-cloud-fog', hint:'100 sis hücresi aç'},
+    sokak_kasifi: {title:'Sokak kaşifi', icon:'ti-road', hint:'10 farklı sokak keşfet'}
+  };
+  function showToast(html, ms){
+    var toast = document.createElement('div');
+    toast.className = 'app-toast';
+    toast.innerHTML = html;
+    document.querySelector('.app').appendChild(toast);
+    setTimeout(function(){ toast.remove(); }, ms || 3200);
+  }
+  function checkChestAchievements(){
+    var n = state.chestsOpened || 0;
+    if(n >= 1){ unlockBadge('ilk_sandik'); }
+    if(n >= 5){ unlockBadge('sandik_avcisi'); }
+    if(n >= 20){ unlockBadge('sandik_ustasi'); }
+    if(fogVisitedSet.size >= 100){ unlockBadge('sis_acici'); }
+  }
+  function checkStreetAchievements(){
+    if(paintedWayIds.size >= 10){ unlockBadge('sokak_kasifi'); }
+  }
+  function renderMedals(){
+    var grid = document.getElementById('medal-grid');
+    if(!grid) return;
+    grid.innerHTML = Object.keys(BADGE_DEFS).map(function(k){
+      var def = BADGE_DEFS[k];
+      var unlocked = !!state.badges[k];
+      return '<div class="medal">'+
+        '<div class="medal-disc'+(unlocked?'':' locked')+'"><span class="medal-ribbon"></span><i class="ti '+def.icon+'"></i></div>'+
+        '<div class="medal-title'+(unlocked?'':' locked')+'">'+def.title+'</div>'+
+        (unlocked ? '' : '<div class="medal-sub">'+def.hint+'</div>')+
+        '</div>';
+    }).join('');
+  }
+  function unlockBadge(key){
+    if(state.badges[key]) return;
+    state.badges[key] = true;
+    saveState();
+    renderMedals();
+    updateLevelUi();
+    if(navigator.vibrate){ navigator.vibrate([30,40,30]); }
+    showToast('<i class="ti ti-award" style="color:var(--success);"></i><span>Rozet: '+((BADGE_DEFS[key]&&BADGE_DEFS[key].title)||key)+'</span>');
+  }
+  function checkAchievements(pt){
+    if(totalDistance >= 1000){ unlockBadge('ilk_km'); }
+    var d = new Date(pt && pt.t ? pt.t : Date.now());
+    var hour = d.getHours();
+    if(hour >= 22 || hour < 5){ unlockBadge('gece_kasifi'); }
+    var day = d.getDay();
+    if(day === 0 || day === 6){ unlockBadge('hafta_sonu_gezgini'); }
+  }
+  renderMedals();
+
+  var weatherHint = null;
+  function weatherCodeText(code){
+    if(code===0) return 'açık';
+    if(code<=3) return 'parçalı bulutlu';
+    if(code<=48) return 'sisli';
+    if(code<=67) return 'yağmurlu';
+    if(code<=77) return 'karlı';
+    if(code<=82) return 'sağanak yağışlı';
+    if(code<=99) return 'fırtınalı';
+    return 'değişken';
+  }
+  function weatherSuggestionExtra(){
+    if(!weatherHint) return '';
+    if(weatherHint.indexOf('yağmur')>-1 || weatherHint.indexOf('sağanak')>-1 || weatherHint.indexOf('fırtına')>-1){
+      return 'Kapalı mekan/müze rotası iyi bir seçim olabilir.';
+    }
+    if(weatherHint.indexOf('açık')>-1 || weatherHint.indexOf('parçalı')>-1){
+      return 'Kıyı ya da açık hava rotası için güzel bir gün.';
+    }
+    return '';
+  }
+  function fetchWeather(lat,lng){
+    var url = 'https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lng+'&current=temperature_2m,weather_code&timezone=auto';
+    fetch(url).then(function(r){ return r.json(); }).then(function(data){
+      if(data && data.current){
+        var t = Math.round(data.current.temperature_2m);
+        weatherHint = t+'°C, '+weatherCodeText(data.current.weather_code);
+        updateSuggestion();
+      }
+    }).catch(function(){});
+  }
+
+  function checkIncomingShare(){
+    var params = new URLSearchParams(location.search);
+    if(params.has('poi')){
+      var data = decodeShare(params.get('poi'));
+      if(data && data.n && typeof data.la==='number'){
+        if(confirm('Bir arkadaşın seninle "'+data.n+'" adlı bir nokta paylaştı. Haritana eklemek ister misin?')){
+          var poi = {id:'c'+Date.now(), name:data.n, note:data.no||'', lat:data.la, lng:data.ln};
+          state.customPois.push(poi);
+          saveState();
+          addCustomPoiMarker(poi);
+          map.setView([poi.lat, poi.lng], 15);
+        }
+      }
+    }
+    if(params.has('route')){
+      var rdata = decodeShare(params.get('route'));
+      if(rdata && rdata.length){
+        L.polyline(rdata, {color: accent, weight:4, dashArray:'6 6'}).addTo(personalLayer).bindPopup('Bir arkadaşının paylaştığı rota');
+        gpsMsg('Bir arkadaşının paylaştığı rota haritana eklendi (kesikli çizgi).');
+      }
+    }
+  }
+
+  var ZONES = [
+    {id:'ev', radius:200, cell:20},
+    {id:'mahalle', radius:800, cell:40},
+    {id:'ilce', radius:4000, cell:150},
+    {id:'sehir', radius:20000, cell:600}
+  ];
+  var totalCellsCache = {};
+  var visitedCells = {};
+  ZONES.forEach(function(z){
+    var saved = (state.visitedCells && state.visitedCells[z.id]) || [];
+    visitedCells[z.id] = new Set(saved);
+  });
+
+  // ---- Sis (Fog of War) + Sandık sistemi ----
+  // Fog, ev-merkezli ZONES sisteminden ayrı, tüm Türkiye ölçeğinde çalışan
+  // ayrı bir ızgara kullanır; böylece nereye gidersen git iz bırakır.
+  var FOG_CELL_M = 90;          // ızgara hücresi (depolama/tekilleştirme için)
+  var FOG_REVEAL_M = 165;       // her açılan noktanın görsel açılma yarıçapı
+  var FOG_ORIGIN = {lat:38.9637, lng:35.2433}; // Türkiye merkezi, harita başlangıcıyla aynı
+  var FOG_MLAT = 111320, FOG_MLNG = 111320*Math.cos(FOG_ORIGIN.lat*Math.PI/180);
+  function fogCellKey(lat,lng){
+    var x = (lng-FOG_ORIGIN.lng)*FOG_MLNG, y=(lat-FOG_ORIGIN.lat)*FOG_MLAT;
+    return Math.floor(x/FOG_CELL_M)+','+Math.floor(y/FOG_CELL_M);
+  }
+  function fogCellToLatLng(key){
+    var parts = key.split(','), cx = parseInt(parts[0],10), cy = parseInt(parts[1],10);
+    var x = (cx+0.5)*FOG_CELL_M, y = (cy+0.5)*FOG_CELL_M;
+    return {lat: FOG_ORIGIN.lat + y/FOG_MLAT, lng: FOG_ORIGIN.lng + x/FOG_MLNG};
+  }
+  var fogVisitedSet = new Set(state.fogCells || []);
+
+  var CHEST_CONTENT = {
+    tarih: ['Tarih sandığı! Çevrende fark etmediğin eski bir yapı, kapı ya da detay var mı? Bulup fotoğrafını "Anı ekle" ile kaydet.', 'Tarih sandığı! Buradaki en eski görünen şeyi ara ve bir kare çek.'],
+    doga: ['Doğa sandığı! Dikkatini çeken bir bitki, ağaç ya da manzara var mı? Fotoğrafla.', 'Doğa sandığı! Etrafında gözden kaçan bir doğal detay bul, kaydet.'],
+    gastronomi: ['Lezzet sandığı! Yakınındaki bir esnaf ya da lokantadan bir şey tadıp fotoğrafını kaydet.', 'Lezzet sandığı! Bölgeye özgü bir tat arıyor musun? Bulunca anı olarak ekle.'],
+    fotograf: ['Fotoğraf sandığı! Bulunduğun açıdan en sıra dışı kareyi çek.', 'Fotoğraf sandığı! Işık, gölge ya da renk dikkatini çeken bir şey bul, çerçevele.'],
+    sehir: ['Şehir sandığı! Bu sokağın seni şaşırtan bir detayını fotoğrafla.', 'Şehir sandığı! Etrafında ilginç bir tabela ya da mimari detay ara.'],
+    bisiklet: ['Rota sandığı! Az ileride keşfetmediğin bir yol var mı, bir bak.', 'Rota sandığı! Az sonra karşına çıkacak yeni bir güzergahı dene.'],
+    yuruyus: ['Rota sandığı! Az ileride keşfetmediğin bir patika var mı, bir bak.', 'Rota sandığı! Bugünkü yürüyüşüne kısa bir sapma ekle.'],
+    sanat: ['Sanat sandığı! İlgini çeken bir doku, desen ya da duvar sanatı bul, fotoğrafla.', 'Sanat sandığı! Etrafında sanatsal bir detay ara.'],
+    surpriz: ['Sürpriz sandık! Bu keşif azmine küçük bir alkış.']
+  };
+  function pickChestCategory(){
+    var cats = Object.keys(CHEST_CONTENT).filter(function(k){ return k!=='surpriz'; });
+    if(Math.random() < 0.12) return 'surpriz';
+    return cats[Math.floor(Math.random()*cats.length)];
+  }
+
+  var FogLayer = L.Layer.extend({
+    onAdd: function(map){
+      this._map = map;
+      this._canvas = L.DomUtil.create('canvas', 'fog-canvas');
+      map.getPanes().overlayPane.appendChild(this._canvas);
+      this._onReset = this._reset.bind(this);
+      map.on('moveend zoomend resize', this._onReset);
+      this._reset();
+    },
+    onRemove: function(map){
+      L.DomUtil.remove(this._canvas);
+      map.off('moveend zoomend resize', this._onReset);
+    },
+    _reset: function(){
+      var size = this._map.getSize();
+      this._canvas.width = size.x; this._canvas.height = size.y;
+      var topLeft = this._map.containerPointToLayerPoint([0,0]);
+      L.DomUtil.setPosition(this._canvas, topLeft);
+      this._draw();
+    },
+    redraw: function(){ if(this._map) this._draw(); return this; },
+    _draw: function(){
+      if(!this._map) return;
+      var ctx = this._canvas.getContext('2d');
+      var size = this._map.getSize();
+      ctx.clearRect(0,0,size.x,size.y);
+      if(!state.fogEnabled) return;
+      var fogColor = getComputedStyle(document.documentElement).getPropertyValue('--fog').trim() || 'rgba(20,24,30,0.86)';
+      ctx.fillStyle = fogColor;
+      ctx.fillRect(0,0,size.x,size.y);
+      ctx.globalCompositeOperation = 'destination-out';
+      var zoom = this._map.getZoom();
+      var bounds = this._map.getBounds().pad(0.4);
+      var self = this;
+      fogVisitedSet.forEach(function(key){
+        var c = fogCellToLatLng(key);
+        if(!bounds.contains([c.lat,c.lng])) return;
+        var pt = self._map.latLngToContainerPoint([c.lat,c.lng]);
+        var mpp = 156543.03392*Math.cos(c.lat*Math.PI/180)/Math.pow(2,zoom);
+        var r = Math.max(FOG_REVEAL_M/mpp, 10);
+        var grad = ctx.createRadialGradient(pt.x,pt.y,0,pt.x,pt.y,r);
+        grad.addColorStop(0,'rgba(0,0,0,1)');
+        grad.addColorStop(0.65,'rgba(0,0,0,1)');
+        grad.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(pt.x,pt.y,r,0,Math.PI*2); ctx.fill();
+      });
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  });
+  var fogLayer = new FogLayer();
+  fogLayer.addTo(map);
+
+  function updateFogStatsLine(){
+    var el = document.getElementById('fog-stats-line');
+    if(el) el.textContent = fogVisitedSet.size+' hücre açıldı · '+(state.chestsOpened||0)+' sandık bulundu';
+  }
+  var chestMarkers = {};
+  function chestIcon(opened){
+    return L.divIcon({
+      className:'', html:'<div class="chest-pin'+(opened?' opened':'')+'"><i class="ti ti-gift"></i></div>',
+      iconSize:[26,26], iconAnchor:[13,13]
+    });
+  }
+  function revealEligibleChests(){
+    state.chests.forEach(function(chest){
+      if(chest.opened || chestMarkers[chest.id]) return;
+      if(fogVisitedSet.has(fogCellKey(chest.lat, chest.lng))){
+        var m = L.marker([chest.lat,chest.lng], {icon: chestIcon(false)}).addTo(personalLayer);
+        chestMarkers[chest.id] = m;
+      }
+    });
+  }
+  var lastChestPromptText = null;
+  function openChest(chest){
+    if(chest.opened) return;
+    chest.opened = true;
+    state.chestsOpened = (state.chestsOpened||0) + 1;
+    if(chestMarkers[chest.id]){ chestMarkers[chest.id].setIcon(chestIcon(true)); }
+    saveState();
+    updateFogStatsLine();
+    updateLevelUi();
+    checkChestAchievements();
+    var pool = CHEST_CONTENT[chest.cat] || CHEST_CONTENT.surpriz;
+    var text = pool[Math.floor(Math.random()*pool.length)];
+    lastChestPromptText = text;
+    document.getElementById('chest-modal-text').textContent = text;
+    document.getElementById('chest-modal').classList.add('show');
+    if(navigator.vibrate){ navigator.vibrate([30,40,30]); }
+  }
+  document.getElementById('chest-modal-close').addEventListener('click', function(){
+    document.getElementById('chest-modal').classList.remove('show');
+  });
+  document.getElementById('chest-modal-memo').addEventListener('click', function(){
+    document.getElementById('chest-modal').classList.remove('show');
+    var memoBtn = document.getElementById('addmemo-btn');
+    if(memoBtn) memoBtn.click();
+    if(lastChestPromptText){ document.getElementById('memo-note-input').value = lastChestPromptText; }
+  });
+
+  var distSinceLastChest = 0;
+  function maybeSpawnChest(pt, stepDist){
+    distSinceLastChest += (stepDist||0);
+    var activeCount = state.chests.filter(function(c){ return !c.opened; }).length;
+    if(activeCount >= 4) return;
+    if(distSinceLastChest < 500) return;
+    distSinceLastChest = 0;
+    if(Math.random() > 0.55) return;
+    var angle = Math.random()*Math.PI*2;
+    var dist = 130 + Math.random()*220;
+    var dLat = (dist*Math.cos(angle))/FOG_MLAT;
+    var dLng = (dist*Math.sin(angle))/FOG_MLNG;
+    var clat = pt.lat+dLat, clng = pt.lng+dLng;
+    var chest = {id:'ch'+Date.now()+Math.floor(Math.random()*999), lat:clat, lng:clng, cat: pickChestCategory(), opened:false, ts:Date.now()};
+    state.chests.push(chest);
+    if(state.chests.length > 200){ state.chests = state.chests.filter(function(c){return !c.opened;}).slice(-150); }
+    saveState();
+  }
+
+  function registerFogPoint(pt){
+    var key = fogCellKey(pt.lat, pt.lng);
+    if(!fogVisitedSet.has(key)){
+      fogVisitedSet.add(key);
+      state.fogCells = Array.from(fogVisitedSet);
+      updateFogStatsLine();
+    }
+    fogLayer.redraw();
+    revealEligibleChests();
+    state.chests.forEach(function(chest){
+      if(!chest.opened && distMeters(pt, chest) < 60){ openChest(chest); }
+    });
+  }
+
+  // (Görev hedefleri artık seviye sistemi tarafından applyLevelToQuests() ile güncelleniyor.)
+
+  // ---- Rota planlayıcı ----
+  // Yakındaki gerçek noktalar OpenStreetMap'ten (Overpass) çekilir; kullanıcı
+  // Ayarlar'dan bir Gemini API anahtarı girdiyse rota seçenekleri yapay zeka ile
+  // hazırlanır, girmediyse ya da AI çağrısı başarısız olursa en-yakın-komşu
+  // sezgiselliğiyle otomatik olarak devam edilir.
+  function poiTagLabel(tags){
+    tags = tags || {};
+    if(tags.historic) return 'Tarihi yer';
+    if(tags.tourism==='viewpoint') return 'Manzara noktası';
+    if(tags.tourism==='museum') return 'Müze';
+    if(tags.tourism==='gallery') return 'Galeri';
+    if(tags.tourism==='artwork') return 'Sanat eseri';
+    if(tags.tourism==='attraction') return 'Gezi noktası';
+    if(tags.leisure==='park' || tags.leisure==='garden') return 'Park/Yeşil alan';
+    if(tags.natural==='beach') return 'Plaj';
+    if(tags.natural==='peak') return 'Tepe';
+    if(tags.amenity==='cafe') return 'Kafe';
+    if(tags.amenity==='restaurant') return 'Restoran';
+    return 'İlgi çekici nokta';
+  }
+  var poiCandidateCache = {center:null, ts:0, list:null};
+  function fetchNearbyPoiCandidates(origin, radiusM, cb){
+    if(poiCandidateCache.list && poiCandidateCache.center && (Date.now()-poiCandidateCache.ts) < 10*60*1000 && distMeters(poiCandidateCache.center, origin) < 300){
+      cb(poiCandidateCache.list);
+      return;
+    }
+    var q = '[out:json][timeout:12];('+
+      'node(around:'+radiusM+','+origin.lat+','+origin.lng+')["tourism"~"attraction|viewpoint|museum|artwork|gallery"];'+
+      'node(around:'+radiusM+','+origin.lat+','+origin.lng+')["historic"];'+
+      'node(around:'+radiusM+','+origin.lat+','+origin.lng+')["leisure"~"park|garden"];'+
+      'node(around:'+radiusM+','+origin.lat+','+origin.lng+')["natural"~"beach|peak"];'+
+      ');out center;';
+    var ctrl = (typeof AbortController!=='undefined') ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, 9000) : null;
+    fetch('https://overpass-api.de/api/interpreter', {method:'POST', body:'data='+encodeURIComponent(q), signal: ctrl?ctrl.signal:undefined})
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(timer) clearTimeout(timer);
+        var seen = {};
+        var list = (data.elements||[]).map(function(el){
+          var name = (el.tags && el.tags.name) || null;
+          return {name: name || 'İsimsiz nokta', lat: el.lat, lng: el.lon, tag: poiTagLabel(el.tags||{})};
+        }).filter(function(p){
+          if(typeof p.lat!=='number' || typeof p.lng!=='number') return false;
+          var key = p.lat.toFixed(4)+','+p.lng.toFixed(4);
+          if(seen[key]) return false;
+          seen[key]=true;
+          return true;
+        });
+        poiCandidateCache = {center:origin, ts:Date.now(), list:list};
+        cb(list);
+      }).catch(function(){ if(timer) clearTimeout(timer); cb([]); });
+  }
+  function gatherLocalCandidates(){
+    var list = [];
+    (state.customPois||[]).forEach(function(p){
+      list.push({name:p.name, lat:p.lat, lng:p.lng, tag:'Senin eklediğin nokta'});
+    });
+    (state.chests||[]).filter(function(c){ return !c.opened; }).forEach(function(c){
+      list.push({name:'Gizli sandık', lat:c.lat, lng:c.lng, tag:'Sandık', isChest:true});
+    });
+    return list;
+  }
+  function clearRoute(){
+    routeLayer.clearLayers();
+    document.getElementById('route-result').style.display = 'none';
+    document.getElementById('route-options-list').innerHTML = '';
+  }
+  function drawSuggestedRoute(stops, origin, meta){
+    routeLayer.clearLayers();
+    var latlngs = [[origin.lat,origin.lng]];
+    var totalM = 0;
+    var cur = origin;
+    stops.forEach(function(s, i){
+      totalM += distMeters(cur, s);
+      cur = s;
+      latlngs.push([s.lat, s.lng]);
+      var icon = L.divIcon({className:'', html:'<div class="chest-pin" style="background:var(--accent);animation:none;box-shadow:none;">'+(i+1)+'</div>', iconSize:[26,26], iconAnchor:[13,13]});
+      L.marker([s.lat,s.lng], {icon:icon}).addTo(routeLayer).bindPopup(s.name+(s.tag?' · '+s.tag:''));
+    });
+    totalM += distMeters(cur, origin);
+    latlngs.push([origin.lat, origin.lng]);
+    L.polyline(latlngs, {color:accent, weight:3, opacity:0.75, dashArray:'2 8'}).addTo(routeLayer);
+    map.fitBounds(L.latLngBounds(latlngs), {padding:[30,30]});
+
+    var lines = stops.map(function(s,i){ return (i+1)+'. '+s.name+(s.tag?' ('+s.tag+')':''); });
+    var km = Math.round(totalM/100)/10;
+    var head = meta && meta.note ? '<div style="margin-bottom:6px;">'+escapeHtml(meta.note)+'</div>' : '';
+    var html = head + lines.join('<br>') + '<br><br><span class="muted">Toplam ~'+km+' km (kuş uçuşu, gerçek yol mesafesi biraz daha uzun olabilir)</span>';
+    document.getElementById('route-result-text').innerHTML = html;
+    document.getElementById('route-result').style.display = 'block';
+  }
+  function suggestUnexploredDirection(origin){
+    var compassNames = ['kuzey','kuzeydoğu','doğu','güneydoğu','güney','güneybatı','batı','kuzeybatı'];
+    var best = null;
+    for(var deg=0; deg<360; deg+=45){
+      var rad = deg*Math.PI/180, visited=0, total=0;
+      for(var dist=150; dist<=1500; dist+=250){
+        var dLat=(dist*Math.cos(rad))/FOG_MLAT, dLng=(dist*Math.sin(rad))/FOG_MLNG;
+        total++;
+        if(fogVisitedSet.has(fogCellKey(origin.lat+dLat, origin.lng+dLng))) visited++;
+      }
+      var ratio = visited/total;
+      if(!best || ratio < best.ratio){ best = {deg:deg, ratio:ratio}; }
+    }
+    var name = compassNames[Math.round(best.deg/45)%8];
+    routeLayer.clearLayers();
+    document.getElementById('route-options-list').innerHTML = '';
+    document.getElementById('route-result-text').innerHTML = 'Yakınında şu an rotaya uyacak bir işaret bulamadım. Ama sis haritana bakınca evinin <b>'+name+'</b> yönünü pek keşfetmemişsin — bugün oraya doğru yürümeye ne dersin? Yürüdükçe sis açılacak ve belki yeni bir sandık çıkar.';
+    document.getElementById('route-result').style.display = 'block';
+  }
+  function buildHeuristicOptions(origin, candidates){
+    function nearestLoop(pool, n){
+      var remaining = pool.slice(), route = [], cur = origin;
+      while(remaining.length && route.length < n){
+        remaining.sort(function(a,b){ return distMeters(cur,a) - distMeters(cur,b); });
+        var next = remaining.shift();
+        route.push(next);
+        cur = next;
+      }
+      return route;
+    }
+    var sorted = candidates.slice().sort(function(a,b){ return distMeters(origin,a)-distMeters(origin,b); });
+    var options = [];
+    var shortRoute = nearestLoop(sorted, 3);
+    if(shortRoute.length){ options.push({title:'Kısa tur', note:'En yakın birkaç noktayı dolaşan kısa bir gezinti.', stops: shortRoute}); }
+    var longPool = sorted.slice(0, 15);
+    var longRoute = nearestLoop(longPool, Math.min(5, longPool.length));
+    if(longRoute.length > shortRoute.length){ options.push({title:'Uzun tur', note:'Biraz daha uzağa uzanan, daha kapsamlı bir tur.', stops: longRoute}); }
+    var chestPool = candidates.filter(function(c){ return c.isChest; });
+    if(chestPool.length){
+      var chestRoute = nearestLoop(chestPool, Math.min(4, chestPool.length));
+      options.push({title:'Sandık avı', note:'Yakınındaki gizli sandıklara odaklanan bir rota.', stops: chestRoute});
+    }
+    return options;
+  }
+  function planRouteWithGemini(origin, candidates, cb){
+    var apiKey = state.geminiApiKey;
+    if(!apiKey){ cb(null); return; }
+    var list = candidates.slice(0,25).map(function(c,i){
+      return i+': '+c.name+' ('+c.tag+') ['+c.lat.toFixed(5)+','+c.lng.toFixed(5)+'] ~'+Math.round(distMeters(origin,c))+'m';
+    }).join('\n');
+    var weatherLine = weatherHint ? ('Hava durumu: '+weatherHint+'.') : '';
+    var prompt = 'Bir yürüyüş/keşif rota planlayıcısısın. Kullanıcının başlangıç konumu: '+origin.lat.toFixed(5)+','+origin.lng.toFixed(5)+'. '+weatherLine+' Aşağıda yakınındaki gerçek noktalar listeleniyor (indeks: ad (tür) [enlem,boylam] mesafe):\n'+list+'\n\nBu noktalardan seçerek birbirinden farklı 2-3 rota SEÇENEĞİ tasarla (ör. kısa/uzun, ya da farklı temalar). Her seçenek 2-5 nokta içersin. Yalnızca yukarıda verilen noktaları kullan, yeni koordinat ya da yer adı uydurma. Sadece şu JSON formatında, başka hiçbir açıklama ya da markdown olmadan yanıt ver: {"options":[{"title":"kısa başlık","note":"tek cümlelik açıklama","stopIndexes":[0,2,5]}]}';
+    var ctrl = (typeof AbortController!=='undefined') ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, 15000) : null;
+    fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key='+encodeURIComponent(apiKey), {
+      method:'POST', headers:{'Content-Type':'application/json'}, signal: ctrl?ctrl.signal:undefined,
+      body: JSON.stringify({contents:[{parts:[{text:prompt}]}], generationConfig:{responseMimeType:'application/json'}})
+    }).then(function(r){ return r.json(); }).then(function(data){
+      if(timer) clearTimeout(timer);
+      var text = data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text;
+      if(!text){ cb(null); return; }
+      var parsed;
+      try{ parsed = JSON.parse(text); }catch(e){ cb(null); return; }
+      var options = (parsed.options||[]).map(function(o){
+        var stops = (o.stopIndexes||[]).map(function(i){ return candidates[i]; }).filter(Boolean);
+        return {title:o.title||'Önerilen rota', note:o.note||'', stops:stops};
+      }).filter(function(o){ return o.stops.length; });
+      cb(options.length ? options : null);
+    }).catch(function(){ if(timer) clearTimeout(timer); cb(null); });
+  }
+  function showRouteOptions(options, origin){
+    var list = document.getElementById('route-options-list');
+    if(!options || !options.length){ suggestUnexploredDirection(origin); return; }
+    list.innerHTML = '';
+    options.forEach(function(opt){
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'route-opt';
+      var km = 0, cur = origin;
+      opt.stops.forEach(function(s){ km += distMeters(cur,s); cur = s; });
+      km += distMeters(cur, origin);
+      km = Math.round(km/100)/10;
+      btn.innerHTML = '<div class="ro-title"><i class="ti ti-route"></i>'+escapeHtml(opt.title)+'</div><div class="ro-sub">'+escapeHtml(opt.note||'')+' · ~'+km+' km · '+opt.stops.length+' durak</div>';
+      btn.addEventListener('click', function(){
+        list.querySelectorAll('.route-opt').forEach(function(b){ b.style.borderColor='var(--border)'; b.style.background='var(--surface)'; });
+        btn.style.borderColor = 'var(--accent)'; btn.style.background = 'var(--accent-light)';
+        drawSuggestedRoute(opt.stops, origin, {note: opt.note});
+      });
+      list.appendChild(btn);
+    });
+    document.getElementById('route-result').style.display = 'block';
+    list.querySelector('.route-opt').click();
+  }
+  var routePlanning = false;
+  function routeLoadingUi(on){
+    routePlanning = on;
+    var btn = document.getElementById('plan-route-btn');
+    var reroll = document.getElementById('route-reroll-btn');
+    if(btn){ btn.disabled = on; btn.innerHTML = on ? '<i class="ti ti-loader-2 spin" style="margin-right:6px;"></i>Rota hazırlanıyor…' : '<i class="ti ti-route" style="margin-right:6px;"></i>Bugün için rota öner'; }
+    if(reroll){ reroll.disabled = on; }
+  }
+  function planRoute(){
+    if(routePlanning) return;
+    if(!state.home){
+      gpsMsg('Önce Harita\'da "Konumumu bul" ile bir kez konum alman gerekiyor.');
+      return;
+    }
+    var origin = state.home;
+    routeLoadingUi(true);
+    fetchNearbyPoiCandidates(origin, 3000, function(remoteCandidates){
+      var candidates = remoteCandidates.concat(gatherLocalCandidates()).filter(function(c){ return distMeters(origin, c) < 8000; });
+      if(candidates.length === 0){ routeLoadingUi(false); suggestUnexploredDirection(origin); return; }
+      candidates.sort(function(a,b){ return distMeters(origin,a)-distMeters(origin,b); });
+      candidates = candidates.slice(0, 20);
+      planRouteWithGemini(origin, candidates, function(aiOptions){
+        routeLoadingUi(false);
+        showRouteOptions(aiOptions || buildHeuristicOptions(origin, candidates), origin);
+      });
+    });
+  }
+  var planRouteBtn = document.getElementById('plan-route-btn');
+  if(planRouteBtn){ planRouteBtn.addEventListener('click', planRoute); }
+  var routeCancelBtn = document.getElementById('route-cancel-btn');
+  if(routeCancelBtn){ routeCancelBtn.addEventListener('click', clearRoute); }
+  var routeRerollBtn = document.getElementById('route-reroll-btn');
+  if(routeRerollBtn){ routeRerollBtn.addEventListener('click', planRoute); }
+
+  function toXY(lat,lng,home){
+    var mLat = 111320;
+    var mLng = 111320*Math.cos(home.lat*Math.PI/180);
+    return {x:(lng-home.lng)*mLng, y:(lat-home.lat)*mLat};
+  }
+  function computeTotalCells(zone){
+    if(totalCellsCache[zone.id]) return totalCellsCache[zone.id];
+    var n = Math.ceil(zone.radius/zone.cell)+1;
+    var count=0;
+    for(var cy=-n; cy<=n; cy++){
+      for(var cx=-n; cx<=n; cx++){
+        var cxm=(cx+0.5)*zone.cell, cym=(cy+0.5)*zone.cell;
+        if(Math.sqrt(cxm*cxm+cym*cym)<=zone.radius) count++;
+      }
+    }
+    totalCellsCache[zone.id]=count;
+    return count;
+  }
+  function updateZonePercents(){
+    if(!state.home) return;
+    document.getElementById('zone-home-note').textContent='Referans: ilk konumun (yaklaşık dairesel alan, gerçek sınır değil)';
+    ZONES.forEach(function(z){
+      var total = computeTotalCells(z);
+      var vc = visitedCells[z.id].size;
+      var pct = total>0 ? Math.min(100, Math.round(vc/total*100)) : 0;
+      document.getElementById('zone-'+z.id+'-pct').textContent='%'+pct;
+      document.getElementById('zone-'+z.id+'-fill').style.width=pct+'%';
+      if(z.id==='ilce'){
+        var q5Target = state.q5Target || 50;
+        var q5 = Math.min(pct,q5Target);
+        document.getElementById('q5-fill').style.width = Math.round(q5/q5Target*100)+'%';
+        document.getElementById('q5-label').textContent = '%'+pct+' / hedef %'+q5Target;
+      }
+    });
+  }
+  function registerPointForZones(pt){
+    if(!state.home){ state.home = {lat:pt.lat, lng:pt.lng}; }
+    var home = state.home;
+    ZONES.forEach(function(z){
+      var xy = toXY(pt.lat, pt.lng, home);
+      var dist = Math.sqrt(xy.x*xy.x + xy.y*xy.y);
+      if(dist <= z.radius){
+        var cx = Math.floor(xy.x/z.cell), cy = Math.floor(xy.y/z.cell);
+        visitedCells[z.id].add(cx+','+cy);
+      }
+    });
+    state.visitedCells = {};
+    ZONES.forEach(function(z){ state.visitedCells[z.id] = Array.from(visitedCells[z.id]); });
+    updateZonePercents();
+  }
+
+  function gpsMsg(text){ document.getElementById('gps-msg').textContent = text || ''; }
+  window.addEventListener('error', function(e){
+    gpsMsg('Sayfa hatası: ' + e.message + ' (satır ' + e.lineno + ')');
+  });
+  function gpsErrorText(err){
+    var framed = (window.self !== window.top);
+    var insecure = (location.protocol !== 'https:' && location.hostname !== 'localhost');
+    if(err.code===1){
+      if(framed || insecure){
+        return 'Bu bir izin ayarı sorunu değil: bu sayfa önizleme veya https olmayan bir ortamda açık olduğu için tarayıcı GPS isteğini otomatik reddediyor. Dosyayı barındırılmış (https) bir linkten, gerçek bir sekmede açman gerekiyor.';
+      }
+      return 'Konum izni reddedildi. Adres çubuğunun solundaki kilit/bilgi simgesine dokun, Site ayarları > Konum > İzin ver seç, sonra sayfayı yenile.';
+    }
+    if(err.code===2) return 'Konum belirlenemedi. Açık alanda tekrar dene, telefonun Konum/GPS ayarının açık olduğundan emin ol.';
+    if(err.code===3) return 'Konum isteği zaman aşımına uğradı, tekrar dene.';
+    return 'Konum alınamadı.';
+  }
+
+  function todayStr(){
+    var d = new Date();
+    return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+  }
+  function updateStreakUi(){
+    var el = document.getElementById('streak-count');
+    if(el) el.textContent = (state.streak && state.streak.count) ? state.streak.count : 0;
+  }
+  function registerActivity(){
+    var today = todayStr();
+    if(!state.streak) state.streak = {lastDate:null, count:0};
+    if(state.streak.lastDate === today) return;
+    var y = new Date(); y.setDate(y.getDate()-1);
+    var yStr = y.getFullYear()+'-'+(y.getMonth()+1)+'-'+y.getDate();
+    state.streak.count = (state.streak.lastDate === yStr) ? state.streak.count + 1 : 1;
+    state.streak.lastDate = today;
+    saveState();
+    updateStreakUi();
+  }
+  updateStreakUi();
+
+  var weeklyGoalKm = state.weeklyGoalKm || 5;
+  document.getElementById('q1-target').textContent = weeklyGoalKm;
+  document.getElementById('q1-edit-btn').addEventListener('click', function(){
+    var val = prompt('Haftalık hedefini km olarak gir:', weeklyGoalKm);
+    if(val === null) return;
+    var num = parseFloat(String(val).replace(',', '.'));
+    if(!isNaN(num) && num > 0){
+      weeklyGoalKm = num;
+      state.weeklyGoalKm = num;
+      state.weeklyGoalKmAuto = false;
+      saveState();
+      document.getElementById('q1-target').textContent = (num % 1 === 0) ? num : num.toFixed(1);
+      updateStats();
+    }
+  });
+
+  function updateStats(){
+    document.getElementById('stat-dist').textContent = (sessionDistance/1000).toFixed(2);
+    document.getElementById('stat-pts').textContent = trackPoints.length;
+    if(trackPoints.length>1){
+      var mins = Math.round((trackPoints[trackPoints.length-1].t - trackPoints[0].t)/60000);
+      document.getElementById('stat-time').textContent = mins;
+    }
+    var km = totalDistance/1000;
+    var qv = Math.min(km, weeklyGoalKm);
+    document.getElementById('q1-fill').style.width = Math.round(qv/weeklyGoalKm*100)+'%';
+    document.getElementById('q1-label').textContent = qv.toFixed(2)+'/'+weeklyGoalKm+' km';
+  }
+
+  // ---- Seviye sistemi ----
+  // XP; yürünen/sürülen km, bulunan sandık, kazanılan rozet, açılan sis hücresi ve
+  // boyanan farklı sokak sayısından türetilir. Görev hedefleri seviyeye göre ölçeklenir.
+  var LEVELS = [
+    {title:'Gezgin çırağı', xp:0},
+    {title:'Kaşif adayı', xp:150},
+    {title:'Kaşif', xp:400},
+    {title:'Deneyimli kaşif', xp:900},
+    {title:'Usta kaşif', xp:1800},
+    {title:'Bölge ustası', xp:3200},
+    {title:'Efsanevi gezgin', xp:5200}
+  ];
+  function computeXp(){
+    var kmXp = (totalDistance/1000) * 8;
+    var chestXp = (state.chestsOpened||0) * 15;
+    var badgeXp = Object.keys(state.badges||{}).filter(function(k){ return state.badges[k]; }).length * 40;
+    var fogXp = fogVisitedSet.size * 0.6;
+    var streakXp = (state.streak && state.streak.count ? state.streak.count : 0) * 5;
+    var wayXp = paintedWayIds.size * 6;
+    return Math.round(kmXp + chestXp + badgeXp + fogXp + streakXp + wayXp);
+  }
+  function computeLevel(){
+    var xp = computeXp();
+    var lvl = 1, cur = LEVELS[0], next = LEVELS[1];
+    for(var i=0;i<LEVELS.length;i++){
+      if(xp >= LEVELS[i].xp){ lvl = i+1; cur = LEVELS[i]; next = LEVELS[i+1] || null; }
+    }
+    var pct = next ? Math.round(((xp-cur.xp)/(next.xp-cur.xp))*100) : 100;
+    return {level:lvl, title:cur.title, xp:xp, pct: Math.max(0,Math.min(100,pct))};
+  }
+  function applyLevelToQuests(level){
+    if(state.weeklyGoalKmAuto !== false){
+      var suggested = Math.round((3 + level*1.5)*10)/10;
+      if(state.weeklyGoalKm !== suggested){
+        weeklyGoalKm = suggested;
+        state.weeklyGoalKm = suggested;
+        state.weeklyGoalKmAuto = true;
+        document.getElementById('q1-target').textContent = suggested;
+      }
+    }
+    var q2t = 3 + level*2;
+    var wayCount = paintedWayIds.size;
+    var q2El = document.getElementById('q2-target'); if(q2El) q2El.textContent = q2t;
+    var q2Fill = document.getElementById('q2-fill'); if(q2Fill) q2Fill.style.width = Math.min(100, Math.round(wayCount/q2t*100))+'%';
+    var q2Label = document.getElementById('q2-label'); if(q2Label) q2Label.textContent = Math.min(wayCount,q2t)+'/'+q2t+' sokak · yürüdükçe/sürdükçe geçtiğin cadde ve sokaklar sayılır';
+
+    var q3t = 3 + level*2;
+    var chests = state.chestsOpened||0;
+    var q3TargetEl = document.getElementById('q3-target-text'); if(q3TargetEl) q3TargetEl.textContent = q3t;
+    var q3Fill = document.getElementById('q3-fill'); if(q3Fill) q3Fill.style.width = Math.min(100, Math.round(chests/q3t*100))+'%';
+    var q3Label = document.getElementById('q3-label'); if(q3Label) q3Label.textContent = Math.min(chests,q3t)+'/'+q3t+' sandık · sis içindeki hücreleri açtıkça ortaya çıkarlar';
+
+    var q4t = 100 + level*60;
+    var fogc = fogVisitedSet.size;
+    var q4TargetEl = document.getElementById('q4-target'); if(q4TargetEl) q4TargetEl.textContent = q4t;
+    var q4Fill = document.getElementById('q4-fill'); if(q4Fill) q4Fill.style.width = Math.min(100, Math.round(fogc/q4t*100))+'%';
+    var q4Label = document.getElementById('q4-label'); if(q4Label) q4Label.textContent = Math.min(fogc,q4t)+'/'+q4t+' hücre';
+
+    state.q5Target = Math.min(90, 30 + level*8);
+    var q5El = document.getElementById('q5-target'); if(q5El) q5El.textContent = state.q5Target;
+    updateZonePercents();
+  }
+  function updateLevelUi(){
+    var info = computeLevel();
+    document.querySelectorAll('#quest-level-disc, #profile-level-disc').forEach(function(d){ d.textContent = info.level; });
+    var titleEl = document.getElementById('quest-level-title'); if(titleEl) titleEl.textContent = info.title;
+    var rankEl = document.getElementById('profile-rank'); if(rankEl) rankEl.textContent = 'Kaşif rütben: '+info.title;
+    var fillEl = document.getElementById('quest-level-fill'); if(fillEl) fillEl.style.width = info.pct+'%';
+    applyLevelToQuests(info.level);
+    return info;
+  }
+
+  function placeUserMarker(lat,lng,acc){
+    if(!userMarker){
+      userMarker = L.circleMarker([lat,lng], {radius:8, color:'#fff', weight:2, fillColor:accent, fillOpacity:1}).addTo(map);
+    } else {
+      userMarker.setLatLng([lat,lng]);
+    }
+    if(accuracyCircle){ map.removeLayer(accuracyCircle); }
+    if(acc){ accuracyCircle = L.circle([lat,lng], {radius:acc, color:accent, weight:1, fillOpacity:0.08}).addTo(map); }
+  }
+
+  // ---- Sokak tabanlı boyama (OpenStreetMap/Overpass) ----
+  // Amaç: adım adım/nokta nokta ince bir iz değil, üzerinden geçilen caddenin/sokağın
+  // TAMAMINI (şerit sayısına göre genişlikte) boyamak; aynı sokak tekrar boyanmaz;
+  // ev/bina içine girildiğinde iz orada durur, bina içine devam etmez.
+  function streetInfo(text){ var el = document.getElementById('street-info'); if(el) el.textContent = text || ''; }
+  var paintedWayIds = new Set(state.paintedWays || []);
+  var paintedWayLayers = {};
+  function laneWidthWeight(tags){
+    tags = tags || {};
+    var lanes = parseInt(tags.lanes, 10);
+    if(!lanes || isNaN(lanes)){
+      var hw = tags.highway;
+      if(hw==='motorway' || hw==='trunk') lanes = 4;
+      else if(hw==='primary' || hw==='secondary') lanes = 2;
+      else if(hw==='footway' || hw==='path' || hw==='pedestrian' || hw==='cycleway' || hw==='steps') lanes = 1;
+      else lanes = 2;
+    }
+    return Math.min(Math.max(lanes * 5, 6), 26);
+  }
+  function pointInPolygon(pt, ring){
+    var inside = false;
+    for(var i=0, j=ring.length-1; i<ring.length; j=i++){
+      var xi=ring[i][1], yi=ring[i][0], xj=ring[j][1], yj=ring[j][0];
+      var x=pt.lng, y=pt.lat;
+      var intersect = ((yi>y) !== (yj>y)) && (x < (xj-xi)*(y-yi)/(yj-yi)+xi);
+      if(intersect) inside = !inside;
+    }
+    return inside;
+  }
+  function distPointToSegmentMeters(p, a, b){
+    var mLat = 111320, mLng = 111320*Math.cos(p.lat*Math.PI/180);
+    var px=(p.lng-a.lng)*mLng, py=(p.lat-a.lat)*mLat;
+    var bx=(b.lng-a.lng)*mLng, by=(b.lat-a.lat)*mLat;
+    var len2 = bx*bx+by*by;
+    var t = len2>0 ? Math.max(0,Math.min(1,(px*bx+py*by)/len2)) : 0;
+    var cx=bx*t, cy=by*t;
+    return Math.sqrt((px-cx)*(px-cx)+(py-cy)*(py-cy));
+  }
+  function paintWay(way, mode){
+    if(paintedWayIds.has(way.id) || !way.geometry) return;
+    var latlngs = way.geometry.filter(function(g){ return g && typeof g.lat==='number'; }).map(function(g){ return [g.lat, g.lon]; });
+    if(latlngs.length < 2) return;
+    var weight = laneWidthWeight(way.tags);
+    var color = colorForMode(mode);
+    var casing = L.polyline(latlngs, {color:color, weight:weight+8, opacity:0.16, lineCap:'round', lineJoin:'round'}).addTo(personalLayer);
+    var line = L.polyline(latlngs, {color:color, weight:weight, opacity:0.85, lineCap:'round', lineJoin:'round'}).addTo(personalLayer);
+    paintedWayIds.add(way.id);
+    paintedWayLayers[way.id] = {line:line, casing:casing};
+    state.paintedWays = Array.from(paintedWayIds);
+    saveState();
+    updateLevelUi();
+    checkStreetAchievements();
+  }
+  var STREET_LOOKUP_RADIUS = 24;
+  var lastStreetLookupAt = null;
+  var streetLookupInFlight = false;
+  function updateStreetPainting(pt, mode){
+    if(streetLookupInFlight) return;
+    if(lastStreetLookupAt && distMeters(lastStreetLookupAt, pt) < 12) return;
+    streetLookupInFlight = true;
+    lastStreetLookupAt = pt;
+    var q = '[out:json][timeout:10];('+
+      'way(around:'+STREET_LOOKUP_RADIUS+','+pt.lat+','+pt.lng+')[highway];'+
+      'way(around:20,'+pt.lat+','+pt.lng+')[building];'+
+      ');out geom;';
+    var ctrl = (typeof AbortController!=='undefined') ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, 8000) : null;
+    fetch('https://overpass-api.de/api/interpreter', {method:'POST', body:'data='+encodeURIComponent(q), signal: ctrl?ctrl.signal:undefined})
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if(timer) clearTimeout(timer);
+        streetLookupInFlight = false;
+        var els = data.elements || [];
+        var buildings = els.filter(function(e){ return e.tags && e.tags.building && e.geometry; });
+        var insideBuilding = buildings.some(function(b){
+          var ring = b.geometry.map(function(g){ return [g.lat,g.lon]; });
+          return ring.length>2 && pointInPolygon(pt, ring);
+        });
+        if(insideBuilding){
+          streetInfo('İçerideyken iz eklenmiyor, dışarı çıkınca devam eder.');
+          return;
+        }
+        var highways = els.filter(function(e){ return e.tags && e.tags.highway && e.geometry && e.geometry.length>1; });
+        if(highways.length === 0){
+          streetInfo('');
+          extendPath([pt.lat,pt.lng], mode);
+          return;
+        }
+        var best = null, bestDist = Infinity;
+        highways.forEach(function(w){
+          for(var i=0;i<w.geometry.length-1;i++){
+            var a=w.geometry[i], b=w.geometry[i+1];
+            if(!a || !b) continue;
+            var d = distPointToSegmentMeters(pt, {lat:a.lat,lng:a.lon}, {lat:b.lat,lng:b.lon});
+            if(d < bestDist){ bestDist = d; best = w; }
+          }
+        });
+        if(!best){ streetInfo(''); extendPath([pt.lat,pt.lng], mode); return; }
+        var streetName = (best.tags && best.tags.name) || null;
+        streetInfo(streetName ? ('Şu an ' + streetName + ' üzerindesin') : '');
+        paintWay(best, mode);
+      })
+      .catch(function(){
+        if(timer) clearTimeout(timer);
+        streetLookupInFlight = false;
+        // Overpass'a ulaşılamadı (çevrimdışı/zaman aşımı): yedek olarak eski
+        // ham GPS izini çiz, en azından bir kayıt kalsın.
+        extendPath([pt.lat,pt.lng], mode);
+      });
+  }
+
+  var MIN_FIX_ACCURACY_M = 45;
+  var MIN_MOVE_M = 4;
+  function onPosition(pos){
+    var lat=pos.coords.latitude, lng=pos.coords.longitude, acc=pos.coords.accuracy;
+    gpsMsg('');
+    placeUserMarker(lat,lng,acc);
+    if(pendingFlyTo){
+      pendingFlyTo = false;
+      followMode = true;
+      map.flyTo([lat,lng], 18, {duration:1.3});
+    } else if(tracking && followMode){
+      map.panTo([lat,lng], {animate:true, duration:0.5});
+    }
+    var prevPt = trackPoints.length ? trackPoints[trackPoints.length-1] : null;
+    var pt = {lat:lat, lng:lng, t: pos.timestamp || Date.now()};
+
+    // GPS sapmasını (jitter) filtrele: doğruluğu kötü ya da neredeyse hareketsizken gelen
+    // konumlar, gerçekte yürünmemiş alanların da haritada boyanmasına sebep oluyordu.
+    if(typeof acc === 'number' && acc > MIN_FIX_ACCURACY_M){
+      gpsMsg('Konum doğruluğu düşük (±'+Math.round(acc)+' m), daha net bir sinyal bekleniyor…');
+      return;
+    }
+    if(prevPt && distMeters(prevPt, pt) < MIN_MOVE_M){
+      return;
+    }
+
+    var mode = detectMode(prevPt, pt);
+    if(prevPt){
+      var d = distMeters(prevPt, pt);
+      totalDistance += d;
+      sessionDistance += d;
+    }
+    trackPoints.push(pt);
+    updateStreetPainting(pt, mode);
+    updateModeAutoLine();
+    state.totalDistance = totalDistance;
+    registerPointForZones(pt);
+    registerFogPoint(pt);
+    maybeSpawnChest(pt, d||0);
+    registerActivity();
+    checkAchievements(pt);
+    saveState();
+    updateStats();
+  }
+
+  function askLocationPermission(onConfirm){
+    if(state.locationConsent){ onConfirm(); return; }
+    var modal = document.getElementById('perm-modal');
+    var yesBtn = document.getElementById('perm-yes');
+    var noBtn = document.getElementById('perm-no');
+    function cleanup(){
+      modal.classList.remove('show');
+      yesBtn.removeEventListener('click', onYes);
+      noBtn.removeEventListener('click', onNo);
+    }
+    function onYes(){
+      state.locationConsent = true;
+      saveState();
+      cleanup();
+      onConfirm();
+    }
+    function onNo(){
+      cleanup();
+    }
+    yesBtn.addEventListener('click', onYes);
+    noBtn.addEventListener('click', onNo);
+    modal.classList.add('show');
+  }
+
+  function reverseGeocode(lat, lng, cb){
+    var url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+lat+'&lon='+lng+'&zoom=14&addressdetails=1';
+    fetch(url, {headers:{'Accept-Language':'tr'}}).then(function(r){ return r.json(); }).then(function(data){
+      var a = data.address || {};
+      var place = a.suburb || a.neighbourhood || a.town || a.city_district || a.city || a.county || null;
+      var region = a.province || a.state || '';
+      if(place){ cb(region && region!==place ? place+', '+region : place); }
+      else { cb(null); }
+    }).catch(function(){ cb(null); });
+  }
+  function showLocInfo(lat, lng){
+    var el = document.getElementById('loc-info');
+    el.innerHTML = '<i class="ti ti-map-pin" style="color:var(--accent);margin-right:4px;"></i>Konumun aranıyor…';
+    reverseGeocode(lat, lng, function(name){
+      var text = name || (lat.toFixed(5)+', '+lng.toFixed(5));
+      el.innerHTML = '<i class="ti ti-map-pin" style="color:var(--accent);margin-right:4px;"></i>Konumun: '+text;
+      var topbarEl = document.getElementById('topbar-loc-text');
+      if(topbarEl) topbarEl.textContent = name || 'Konum bulundu';
+    });
+  }
+
+  function showHereConfirmPopup(lat, lng){
+    if(!userMarker) return;
+    var html = '<div style="text-align:center;min-width:150px;">'+
+      '<div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text);">Sen burada mısın?</div>'+
+      '<button id="confirm-here-btn" style="background:var(--accent);color:var(--on-accent);border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;">Evet, buradayım</button>'+
+      '</div>';
+    userMarker.bindPopup(html).openPopup();
+    userMarker.off('popupopen').on('popupopen', function(){
+      var btn = document.getElementById('confirm-here-btn');
+      if(btn){
+        btn.addEventListener('click', function(){
+          userMarker.closePopup();
+          showToast('<i class="ti ti-check" style="color:var(--success);"></i><span>Konum onaylandı. Şimdi "Takibi başlat"a basabilirsin.</span>', 3200);
+        });
+      }
+    });
+  }
+
+  document.getElementById('locate-btn').addEventListener('click', function(){
+    gpsMsg('Buton çalıştı, kontrol ediliyor…');
+    if(!navigator.geolocation){ gpsMsg('Bu tarayıcı konum servisini desteklemiyor.'); return; }
+    askLocationPermission(function(){
+      gpsMsg('İzin onaylandı, konum aranıyor…');
+      navigator.geolocation.getCurrentPosition(function(pos){
+        gpsMsg('');
+        var lat=pos.coords.latitude, lng=pos.coords.longitude;
+        map.setView([lat, lng], 16);
+        placeUserMarker(lat, lng, pos.coords.accuracy);
+        showLocInfo(lat, lng);
+        showHereConfirmPopup(lat, lng);
+        fetchWeather(lat, lng);
+      }, function(err){ gpsMsg(gpsErrorText(err)); }, {enableHighAccuracy:true, timeout:12000});
+    });
+  });
+
+  var trackBtn = document.getElementById('track-btn');
+  trackBtn.addEventListener('click', function(){
+    if(!tracking){
+      if(!navigator.geolocation){ gpsMsg('Bu tarayıcı konum servisini desteklemiyor.'); return; }
+      trackPoints = [];
+      sessionDistance = 0;
+      gpsMsg('Buton çalıştı, konum izni isteniyor…');
+      tracking = true;
+      trackBtn.textContent = 'Takibi durdur';
+      trackBtn.classList.add('recording');
+      askLocationPermission(function(){
+        pendingFlyTo = true;
+        watchId = navigator.geolocation.watchPosition(onPosition, function(err){
+          gpsMsg(gpsErrorText(err));
+          navigator.geolocation.clearWatch(watchId);
+          tracking = false;
+          trackBtn.textContent = 'Takibi başlat';
+          trackBtn.classList.remove('recording');
+        }, {enableHighAccuracy:true, maximumAge:4000, timeout:15000});
+      });
+    } else {
+      navigator.geolocation.clearWatch(watchId);
+      tracking = false;
+      trackBtn.textContent = 'Takibi başlat';
+      trackBtn.classList.remove('recording');
+      endCurrentTrip();
+    }
+  });
+
+  function runDiagnostics(){
+    var framed = (window.self !== window.top);
+    var insecure = (location.protocol !== 'https:' && location.hostname !== 'localhost');
+    if(framed || insecure){
+      document.getElementById('context-warning').classList.add('show');
+    }
+  }
+
+  var fogToggleInput = document.getElementById('fog-toggle-input');
+  if(fogToggleInput){
+    fogToggleInput.checked = state.fogEnabled !== false;
+    fogToggleInput.addEventListener('change', function(){
+      state.fogEnabled = fogToggleInput.checked;
+      saveState();
+      fogLayer.redraw();
+    });
+  }
+  updateFogStatsLine();
+  updateLevelUi();
+  revealEligibleChests();
+
+  var resetBtn = document.getElementById('reset-btn');
+  if(resetBtn){
+    resetBtn.addEventListener('click', function(){
+      if(confirm('Tüm kaydedilen keşif verilerini silmek istediğine emin misin?')){
+        try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+        location.reload();
+      }
+    });
+  }
+
+  function initials(text){
+    if(!text) return 'K';
+    var parts = text.trim().split(/\s+/);
+    if(parts.length === 1) return parts[0].slice(0,2).toUpperCase();
+    return (parts[0][0]+parts[1][0]).toUpperCase();
+  }
+  function updateProfileIdentity(user){
+    var avatarEl = document.getElementById('profile-avatar');
+    var avatarTextEl = document.getElementById('profile-avatar-text');
+    var badgeEl = document.getElementById('avatar-badge');
+    var nameEl = document.getElementById('profile-name');
+    if(!avatarEl || !nameEl || !avatarTextEl) return;
+    var display, hasIdentity;
+    if(user){
+      display = user.displayName || state.displayName || (user.email ? user.email.split('@')[0] : 'Kaşif');
+      hasIdentity = true;
+    } else {
+      display = state.displayName;
+      hasIdentity = !!state.displayName;
+    }
+    nameEl.textContent = display || 'Kaşif';
+    if(hasIdentity){
+      avatarTextEl.textContent = initials(display);
+      avatarEl.classList.remove('guest');
+    } else {
+      avatarTextEl.innerHTML = '<i class="ti ti-user"></i>';
+      avatarEl.classList.add('guest');
+    }
+    if(badgeEl){ badgeEl.style.display = user ? 'flex' : 'none'; }
+  }
+  function authErrorTr(err){
+    var codes = {
+      'auth/email-already-in-use':'Bu e-posta adresiyle zaten bir hesap var. Bunun yerine giriş yapmayı dene.',
+      'auth/invalid-email':'E-posta adresi geçerli görünmüyor.',
+      'auth/weak-password':'Şifre çok zayıf, en az 6 karakter kullan.',
+      'auth/user-not-found':'Bu e-posta ile kayıtlı bir hesap bulunamadı.',
+      'auth/wrong-password':'Şifre yanlış.',
+      'auth/invalid-credential':'E-posta veya şifre yanlış.',
+      'auth/too-many-requests':'Çok fazla deneme yapıldı, birazdan tekrar dene.',
+      'auth/network-request-failed':'İnternet bağlantısı sorunu, tekrar dene.',
+      'auth/operation-not-allowed':'E-posta/şifre ile girişe şu an izin verilmiyor.',
+      'auth/configuration-not-found':'Hesap sistemi bu proje için henüz etkinleştirilmemiş. (Geliştirici notu: Firebase Console → Authentication → Sign-in method\'tan "E-posta/Şifre" sağlayıcısını aç.)',
+      'auth/user-disabled':'Bu hesap devre dışı bırakılmış.',
+      'auth/missing-password':'Şifre alanı boş olamaz.',
+      'auth/invalid-login-credentials':'E-posta veya şifre yanlış.'
+    };
+    return (err && codes[err.code]) || (err && err.message) || 'Bilinmeyen bir hata oluştu.';
+  }
+  function showAuthAlert(text, type){
+    var box = document.getElementById('auth-msg-box');
+    var span = document.getElementById('auth-msg');
+    if(!box || !span) return;
+    span.textContent = text;
+    box.classList.toggle('success', type === 'success');
+    box.classList.add('show');
+  }
+  function hideAuthAlert(){
+    var box = document.getElementById('auth-msg-box');
+    var span = document.getElementById('auth-msg');
+    if(box) box.classList.remove('show','success');
+    if(span) span.textContent = '';
+  }
+  function updateAccountUi(user){
+    var out = document.getElementById('account-signedout');
+    var inn = document.getElementById('account-signedin');
+    var friendsOut = document.getElementById('friends-signedout');
+    var friendsIn = document.getElementById('friends-signedin');
+    if(user){
+      out.style.display = 'none';
+      inn.style.display = 'block';
+      document.getElementById('account-email').textContent = user.email;
+      if(friendsOut) friendsOut.style.display = 'none';
+      if(friendsIn) friendsIn.style.display = 'block';
+      var codeEl = document.getElementById('my-friend-code');
+      if(codeEl) codeEl.textContent = user.uid;
+      renderFriends();
+    } else {
+      out.style.display = 'block';
+      inn.style.display = 'none';
+      if(friendsOut) friendsOut.style.display = 'block';
+      if(friendsIn) friendsIn.style.display = 'none';
+    }
+    updateProfileIdentity(user);
+  }
+  function renderFriends(){
+    var el = document.getElementById('friends-list');
+    if(!el || !fbReady || !db) return;
+    var friends = state.friends || [];
+    if(friends.length === 0){
+      el.innerHTML = '<div class="muted" style="font-size:12px;">Henüz arkadaşın yok. Yukarıdaki kodu bir arkadaşınla paylaş ya da onun kodunu ekle.</div>';
+      return;
+    }
+    el.innerHTML = '<div class="muted" style="font-size:11px;">Yükleniyor…</div>';
+    Promise.all(friends.map(function(f){
+      return db.collection('leaderboard').doc(f.uid).get().catch(function(){ return null; });
+    })).then(function(docs){
+      var rows = docs.map(function(doc, idx){
+        var uid = friends[idx].uid;
+        var name = (doc && doc.exists) ? (doc.data().displayName || 'Kaşif') : 'Kaşif';
+        var km = (doc && doc.exists) ? (doc.data().totalDistanceKm||0).toFixed(1) : '0.0';
+        return '<div class="row" style="padding:6px 0;"><span style="font-size:13px;">'+escapeHtml(name)+'</span><span style="display:flex;align-items:center;gap:8px;"><span class="muted" style="font-size:12px;">'+km+' km</span><i class="ti ti-x" data-remove-friend="'+uid+'" style="cursor:pointer;color:var(--text-muted);"></i></span></div>';
+      });
+      el.innerHTML = rows.join('');
+      el.querySelectorAll('[data-remove-friend]').forEach(function(icon){
+        icon.addEventListener('click', function(){
+          var uid = icon.getAttribute('data-remove-friend');
+          state.friends = state.friends.filter(function(f){ return f.uid !== uid; });
+          saveState();
+          renderFriends();
+          if(leaderboardScope === 'friends') loadLeaderboard();
+        });
+      });
+    });
+  }
+  var addFriendBtn = document.getElementById('add-friend-btn');
+  if(addFriendBtn){
+    addFriendBtn.addEventListener('click', function(){
+      var input = document.getElementById('friend-code-input');
+      var code = (input.value||'').trim();
+      if(!code) return;
+      if(currentUser && code === currentUser.uid){ gpsMsg('Kendi kodunu ekleyemezsin.'); return; }
+      state.friends = state.friends || [];
+      if(state.friends.some(function(f){ return f.uid === code; })){ gpsMsg('Bu arkadaş zaten eklenmiş.'); return; }
+      if(!fbReady || !db){ gpsMsg('Arkadaş eklemek için bağlantı gerekiyor.'); return; }
+      addFriendBtn.disabled = true;
+      db.collection('leaderboard').doc(code).get().then(function(doc){
+        addFriendBtn.disabled = false;
+        if(!doc.exists){ gpsMsg('Bu kodla eşleşen bir kaşif bulunamadı.'); return; }
+        state.friends.push({uid: code, addedAt: Date.now()});
+        saveState();
+        input.value = '';
+        renderFriends();
+        if(leaderboardScope === 'friends') loadLeaderboard();
+      }).catch(function(){
+        addFriendBtn.disabled = false;
+        gpsMsg('Arkadaş eklenemedi, bağlantını kontrol et.');
+      });
+    });
+  }
+  var copyCodeBtn = document.getElementById('copy-code-btn');
+  if(copyCodeBtn){
+    copyCodeBtn.addEventListener('click', function(){
+      var code = document.getElementById('my-friend-code').textContent;
+      if(!code) return;
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(code).then(function(){ gpsMsg('Kod kopyalandı.'); }).catch(function(){});
+      }
+    });
+  }
+  var leaderboardScope = 'friends';
+  function renderLeaderboardRows(docs, el){
+    if(docs.length === 0){
+      el.className = 'muted'; el.style.fontSize = '12px';
+      el.textContent = leaderboardScope === 'friends' ? 'Arkadaşların henüz sıralamada değil.' : 'Henüz kimse sıralamada değil, ilk sen ol!';
+      return;
+    }
+    docs.sort(function(a,b){ return (b.data().totalDistanceKm||0) - (a.data().totalDistanceKm||0); });
+    el.className = '';
+    var rows = [];
+    docs.forEach(function(doc, i){
+      var d = doc.data();
+      var isMe = currentUser && doc.id === currentUser.uid;
+      var name = isMe ? 'Sen' : (d.displayName || 'Kaşif');
+      rows.push('<div class="row" style="padding:5px 0;"><span style="font-size:13px;'+(isMe?'color:var(--accent);font-weight:600;':'')+'">'+(i+1)+'. '+escapeHtml(name)+'</span><span style="font-size:13px;" class="'+(isMe?'':'muted')+'">'+(d.totalDistanceKm||0).toFixed(1)+' km</span></div>');
+    });
+    el.innerHTML = rows.join('');
+  }
+  function loadLeaderboard(){
+    var el = document.getElementById('leaderboard-list');
+    if(!el) return;
+    if(!fbReady || !db){
+      el.className = 'muted'; el.style.fontSize = '12px';
+      el.textContent = 'Lider tablosu için hesap sistemi şu an kullanılamıyor.';
+      return;
+    }
+    if(leaderboardScope === 'friends'){
+      var ids = (state.friends||[]).map(function(f){ return f.uid; });
+      if(currentUser) ids.push(currentUser.uid);
+      ids = Array.from(new Set(ids)).slice(0,10);
+      if(ids.length === 0){
+        el.className = 'muted'; el.style.fontSize = '12px';
+        el.textContent = 'Henüz arkadaş eklemedin.';
+        return;
+      }
+      db.collection('leaderboard').where(firebase.firestore.FieldPath.documentId(),'in',ids).get().then(function(snap){
+        var docs = []; snap.forEach(function(d){ docs.push(d); });
+        renderLeaderboardRows(docs, el);
+      }).catch(function(){
+        el.className = 'muted'; el.style.fontSize = '12px';
+        el.textContent = 'Lider tablosu yüklenemedi.';
+      });
+      return;
+    }
+    db.collection('leaderboard').orderBy('totalDistanceKm','desc').limit(5).get().then(function(snap){
+      var docs = []; snap.forEach(function(d){ docs.push(d); });
+      renderLeaderboardRows(docs, el);
+    }).catch(function(){
+      el.className = 'muted'; el.style.fontSize = '12px';
+      el.textContent = 'Lider tablosu yüklenemedi.';
+    });
+  }
+  document.querySelectorAll('[data-lbscope]').forEach(function(chip){
+    chip.addEventListener('click', function(){
+      document.querySelectorAll('[data-lbscope]').forEach(function(c){ c.classList.remove('active'); });
+      chip.classList.add('active');
+      leaderboardScope = chip.getAttribute('data-lbscope');
+      loadLeaderboard();
+    });
+  });
+  if(!fbReady){ loadLeaderboard(); }
+  if(auth){
+    auth.onAuthStateChanged(function(user){
+      currentUser = user;
+      updateAccountUi(user);
+      loadLeaderboard();
+      if(user && db){
+        db.collection('users').doc(user.uid).get().then(function(doc){
+          if(doc.exists){
+            var cloud = doc.data();
+            Object.keys(cloud).forEach(function(k){ state[k] = cloud[k]; });
+            state.customPois = state.customPois || [];
+            state.trips = state.trips || [];
+            state.badges = state.badges || {};
+            state.regionsVisited = state.regionsVisited || {};
+            state.visitedCells = state.visitedCells || {ev:[],mahalle:[],ilce:[],sehir:[]};
+            state.poisVisited = state.poisVisited || {};
+            try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+            location.reload();
+          } else {
+            db.collection('users').doc(user.uid).set(getCloudSyncPayload()).catch(function(){});
+          }
+        });
+      }
+    });
+  }
+  document.getElementById('auth-signup-btn').addEventListener('click', function(){
+    var btn = this;
+    hideAuthAlert();
+    if(!auth){ showAuthAlert('Hesap sistemi şu an kullanılamıyor.'); return; }
+    var name = document.getElementById('auth-name').value.trim();
+    var email = document.getElementById('auth-email-signup').value.trim();
+    var pass = document.getElementById('auth-password-signup').value;
+    if(!email || pass.length < 6){ showAuthAlert('Geçerli bir e-posta ve en az 6 karakterli şifre gir.'); return; }
+    if(name){ state.displayName = name; updateProfileIdentity(null); saveState(); }
+    btn.disabled = true;
+    var originalLabel = btn.innerHTML;
+    btn.innerHTML = '<i class="ti ti-loader-2"></i><span class="btn-label">Hesap oluşturuluyor…</span>';
+    auth.createUserWithEmailAndPassword(email, pass).then(function(cred){
+      if(name && cred.user){ return cred.user.updateProfile({displayName:name}); }
+    }).catch(function(err){
+      showAuthAlert(authErrorTr(err));
+    }).finally(function(){
+      btn.disabled = false;
+      btn.innerHTML = originalLabel;
+    });
+  });
+  document.getElementById('auth-signin-btn').addEventListener('click', function(){
+    var btn = this;
+    hideAuthAlert();
+    if(!auth){ showAuthAlert('Hesap sistemi şu an kullanılamıyor.'); return; }
+    var email = document.getElementById('auth-email-signin').value.trim();
+    var pass = document.getElementById('auth-password-signin').value;
+    if(!email || !pass){ showAuthAlert('E-posta ve şifreni gir.'); return; }
+    btn.disabled = true;
+    var originalLabel = btn.innerHTML;
+    btn.innerHTML = '<i class="ti ti-loader-2"></i><span class="btn-label">Giriş yapılıyor…</span>';
+    auth.signInWithEmailAndPassword(email, pass).catch(function(err){
+      showAuthAlert(authErrorTr(err));
+    }).finally(function(){
+      btn.disabled = false;
+      btn.innerHTML = originalLabel;
+    });
+  });
+  var forgotBtn = document.getElementById('auth-forgot-btn');
+  if(forgotBtn){
+    forgotBtn.addEventListener('click', function(){
+      hideAuthAlert();
+      if(!auth){ showAuthAlert('Hesap sistemi şu an kullanılamıyor.'); return; }
+      var email = document.getElementById('auth-email-signin').value.trim();
+      if(!email){ showAuthAlert('Şifre sıfırlama bağlantısı için önce e-posta adresini gir.'); return; }
+      auth.sendPasswordResetEmail(email).then(function(){
+        showAuthAlert(email+' adresine şifre sıfırlama bağlantısı gönderildi.', 'success');
+      }).catch(function(err){ showAuthAlert(authErrorTr(err)); });
+    });
+  }
+  document.querySelectorAll('.auth-tab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      document.querySelectorAll('.auth-tab').forEach(function(t){ t.classList.remove('active'); });
+      tab.classList.add('active');
+      var key = tab.getAttribute('data-authtab');
+      document.querySelectorAll('.auth-pane').forEach(function(p){ p.classList.toggle('active', p.id === 'auth-pane-'+key); });
+      hideAuthAlert();
+    });
+  });
+  document.querySelectorAll('.auth-eye').forEach(function(eyeBtn){
+    eyeBtn.addEventListener('click', function(){
+      var target = document.getElementById(eyeBtn.getAttribute('data-target'));
+      if(!target) return;
+      var icon = eyeBtn.querySelector('i');
+      if(target.type === 'password'){ target.type = 'text'; icon.className = 'ti ti-eye-off'; }
+      else { target.type = 'password'; icon.className = 'ti ti-eye'; }
+    });
+  });
+  document.getElementById('auth-signout-btn').addEventListener('click', function(){
+    if(auth) auth.signOut();
+  });
+
+  document.getElementById('share-btn').addEventListener('click', function(){
+    var text = 'Patika ile bugün '+(totalDistance/1000).toFixed(2)+' km yürüdüm ve '+trackPoints.length+' nokta kaydettim.';
+    var shareData = {title:'Patika', text:text};
+    if(location.protocol==='https:' && trackPoints.length>1){
+      var pts = trackPoints.filter(function(p,i){ return i % Math.ceil(trackPoints.length/40) === 0; }).map(function(p){ return [p.lat,p.lng]; });
+      var url = new URL(location.href);
+      url.search = '';
+      url.searchParams.set('route', encodeShare(pts));
+      shareData.url = url.toString();
+    } else if(location.protocol==='https:'){
+      shareData.url = location.href;
+    }
+    if(navigator.share){
+      navigator.share(shareData).catch(function(){});
+    } else if(navigator.clipboard){
+      navigator.clipboard.writeText(text+(shareData.url?' '+shareData.url:'')).then(function(){
+        gpsMsg('Metin panoya kopyalandı, istediğin yere yapıştırabilirsin.');
+      }).catch(function(){});
+    } else {
+      gpsMsg(text);
+    }
+  });
+
+  var themeChips = document.querySelectorAll('[data-theme]');
+  themeChips.forEach(function(chip){
+    if(chip.getAttribute('data-theme') === (state.mapTheme||'auto')){ chip.classList.add('active'); }
+    else { chip.classList.remove('active'); }
+    chip.addEventListener('click', function(){
+      themeChips.forEach(function(c){ c.classList.remove('active'); });
+      chip.classList.add('active');
+      state.mapTheme = chip.getAttribute('data-theme');
+      applyMapTheme();
+      saveState();
+    });
+  });
+
+  var screens=['harita','ilerleme','profil'];
+  document.querySelectorAll('.navbtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var tab = btn.getAttribute('data-tab');
+      screens.forEach(function(s){ document.getElementById('screen-'+s).classList.toggle('active', s===tab); });
+      document.querySelectorAll('.navbtn').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      document.querySelector('.content').scrollTop = 0;
+      if(tab==='harita'){ setTimeout(function(){ map.invalidateSize(); }, 50); }
+    });
+  });
+
+  function updateSuggestion(){
+    var base = 'Haritada gezin, izin ver ve takibi başlat, gerçek yürüyüşün haritada iz bıraksın.';
+    if(weatherHint){
+      var extra = weatherSuggestionExtra();
+      base = weatherHint + '. ' + (extra ? extra+' ' : '') + base;
+    }
+    document.getElementById('suggestion-text-inner').textContent = base;
+  }
+
+  var fabBtn = document.getElementById('fab-btn');
+  var fabMenu = document.getElementById('fab-menu');
+  fabBtn.addEventListener('click', function(){
+    fabMenu.classList.toggle('show');
+    fabBtn.classList.toggle('open');
+  });
+  fabMenu.querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click', function(){
+      fabMenu.classList.remove('show');
+      fabBtn.classList.remove('open');
+    });
+  });
+
+  var infoToggle = document.getElementById('info-toggle');
+  var infoPanel = document.getElementById('info-panel');
+  infoToggle.addEventListener('click', function(){
+    infoPanel.classList.toggle('show');
+  });
+
+  // ---- Ayarlar (sağ üst dişli ikonu) ----
+  var settingsBtn = document.getElementById('settings-btn');
+  var settingsModal = document.getElementById('settings-modal');
+  if(settingsBtn && settingsModal){
+    settingsBtn.addEventListener('click', function(){ settingsModal.classList.add('show'); });
+  }
+  var settingsCloseBtn = document.getElementById('settings-close-btn');
+  if(settingsCloseBtn && settingsModal){
+    settingsCloseBtn.addEventListener('click', function(){ settingsModal.classList.remove('show'); });
+  }
+
+  function systemPrefersDark(){
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+  function applyAppearance(){
+    var mode = state.appearance || 'light';
+    var dark = mode === 'dark' || (mode === 'system' && systemPrefersDark());
+    document.documentElement.setAttribute('data-appearance', dark ? 'dark' : 'light');
+    document.querySelectorAll('.appearance-opt').forEach(function(btn){
+      btn.classList.toggle('active', btn.getAttribute('data-appearance') === mode);
+    });
+  }
+  document.querySelectorAll('.appearance-opt').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      state.appearance = btn.getAttribute('data-appearance');
+      saveState();
+      applyAppearance();
+    });
+  });
+  if(window.matchMedia){
+    try{
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(){
+        if((state.appearance||'light') === 'system'){ applyAppearance(); }
+      });
+    }catch(e){}
+  }
+  applyAppearance();
+
+  function updateGeminiStatus(){
+    var el = document.getElementById('gemini-key-status');
+    if(!el) return;
+    el.textContent = state.geminiApiKey ? 'Anahtar kayıtlı — rota önerileri yapay zeka ile hazırlanacak.' : 'Anahtar girilmedi — rota önerileri basit bir yakınlık mantığıyla hazırlanacak.';
+  }
+  var geminiInput = document.getElementById('gemini-key-input');
+  if(geminiInput){ geminiInput.value = state.geminiApiKey || ''; }
+  updateGeminiStatus();
+  var geminiSaveBtn = document.getElementById('gemini-key-save');
+  if(geminiSaveBtn){
+    geminiSaveBtn.addEventListener('click', function(){
+      state.geminiApiKey = (geminiInput.value||'').trim() || null;
+      saveState();
+      updateGeminiStatus();
+      showToast('<i class="ti ti-check" style="color:var(--success);"></i><span>Ayarlar kaydedildi</span>');
+    });
+  }
+  var geminiEye = document.getElementById('gemini-key-eye');
+  if(geminiEye && geminiInput){
+    geminiEye.addEventListener('click', function(){
+      var icon = geminiEye.querySelector('i');
+      if(geminiInput.type==='password'){ geminiInput.type='text'; icon.className='ti ti-eye-off'; }
+      else { geminiInput.type='password'; icon.className='ti ti-eye'; }
+    });
+  }
+
+  var locHintBtn = document.getElementById('loc-hint-btn');
+  if(locHintBtn){
+    locHintBtn.addEventListener('click', function(){
+      showToast('<i class="ti ti-info-circle" style="color:var(--accent);"></i><span>Cihazının paylaştığı yaklaşık konum; "Konumumu bul" ile güncellenir.</span>', 4200);
+    });
+  }
+
+  document.querySelectorAll('.subtab-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var key = btn.getAttribute('data-subtab');
+      document.querySelectorAll('.subtab-btn').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      document.querySelectorAll('.subtab').forEach(function(p){ p.classList.toggle('active', p.id === 'subtab-'+key); });
+    });
+  });
+
+  document.getElementById('tip-close').addEventListener('click', function(){
+    document.getElementById('tip-overlay').classList.remove('show');
+    state.tipSeen = true;
+    saveState();
+  });
+  function maybeShowTip(){
+    if(!state.tipSeen){ document.getElementById('tip-overlay').classList.add('show'); }
+  }
+
+  updateStats();
+  updateSuggestion();
+  updateZonePercents();
+  updateProfileIdentity(currentUser);
+  runDiagnostics();
+  checkIncomingShare();
+  maybeShowTip();
+  if(state.home){
+    reverseGeocode(state.home.lat, state.home.lng, function(name){
+      var topbarEl = document.getElementById('topbar-loc-text');
+      if(topbarEl) topbarEl.textContent = name || 'Konum bulundu';
+    });
+  }
+})();
+</script>
+</body>
+</html>
